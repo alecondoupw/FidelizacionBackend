@@ -93,6 +93,40 @@ function contrato(nombre: string, crear: () => Almacen) {
       ).rejects.toThrow(/rango/);
     });
 
+    it("array-contains se combina con igualdades, orden por id y cursor", async () => {
+      await a.transaccion(async (tx) => {
+        tx.fijar("personas/p1", { rol: "c", marcas: ["zontes"], activo: true });
+        tx.fijar("personas/p2", {
+          rol: "c",
+          marcas: ["kiden", "zontes"],
+          activo: true,
+        });
+        tx.fijar("personas/p3", {
+          rol: "c",
+          marcas: ["zontes"],
+          activo: false,
+        });
+        tx.fijar("personas/p4", { rol: "c", marcas: [], activo: true });
+      });
+      const ids = async (despuesDeId?: string) =>
+        (
+          await a.consultar({
+            coleccion: "personas",
+            donde: [
+              ["rol", "==", "c"],
+              ["activo", "==", true],
+              ["marcas", "array-contains", "zontes"],
+            ],
+            ordenId: "asc",
+            despuesDeId,
+            limite: 1,
+          })
+        ).map((d) => d.id);
+      expect(await ids()).toEqual(["p1"]);
+      expect(await ids("p1")).toEqual(["p2"]);
+      expect(await ids("p2")).toEqual([]);
+    });
+
     it("las subcolecciones no se mezclan con su colección padre", async () => {
       await a.transaccion(async (tx) => {
         tx.fijar("padres/p1", { x: 1 });
@@ -128,7 +162,7 @@ describe.runIf(integracion)("integración Firestore · almacén", () => {
   const db = () => getFirestore(getFirebaseAdminApp(loadConfig()));
   contrato("firestore", () => crearAlmacenFirestore(db(), prefijo));
   afterAll(async () => {
-    for (const c of ["pruebas", "lista", "padres"]) {
+    for (const c of ["pruebas", "lista", "padres", "personas"]) {
       await db().recursiveDelete(db().collection(`${prefijo}${c}`));
     }
   });

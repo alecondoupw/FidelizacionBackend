@@ -4,19 +4,23 @@ import type { CuentasAuth } from "../admin/bootstrap.js";
 import { loadConfig } from "../config/env.js";
 import { getFirebaseAdminApp } from "../firebase/admin.js";
 import { crearAlmacenFirestore } from "../almacen/firestore.js";
-import { crearPerfilesFirestore } from "../usuarios/perfiles-firestore.js";
+import { crearPerfilesAlmacen } from "../usuarios/perfiles-almacen.js";
 
 /** Conexión común de los comandos de operación (los ejecuta Paulo, no la API). */
 export function conectarFirebase() {
   const config = loadConfig();
   const app = getFirebaseAdminApp(config);
   const auth = getAuth(app);
+  const almacen = crearAlmacenFirestore(
+    getFirestore(app),
+    config.firestorePrefix,
+  );
   return {
     config,
     auth,
     cuentas: crearCuentasAuth(auth),
-    perfiles: crearPerfilesFirestore(getFirestore(app), config.firestorePrefix),
-    almacen: crearAlmacenFirestore(getFirestore(app), config.firestorePrefix),
+    perfiles: crearPerfilesAlmacen(almacen),
+    almacen,
   };
 }
 

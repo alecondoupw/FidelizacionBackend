@@ -8,6 +8,7 @@ import {
 } from "./auth/token-verifier.js";
 import { loadConfig } from "./config/env.js";
 import type { Perfil } from "./dominio/tipos.js";
+import { crearCuentasEnMemoria } from "./identidad/cuentas.js";
 import { crearFuenteSintetica } from "./legacy/fuente-legacy.js";
 import { R } from "./puntos/rutas.js";
 import { huellaCorreo } from "./usuarios/correo.js";
@@ -85,6 +86,7 @@ beforeEach(async () => {
   app = createApp(loadConfig({ NODE_ENV: "test" }), {
     tokenVerifier: verifier,
     perfiles: repo,
+    cuentas: crearCuentasEnMemoria(),
     fuenteLegacy: crearFuenteSintetica(),
     almacen,
     reloj: () => AHORA,

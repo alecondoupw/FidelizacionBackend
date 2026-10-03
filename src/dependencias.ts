@@ -11,13 +11,19 @@ import {
 } from "./legacy/fuente-legacy.js";
 import type { Almacen } from "./almacen/almacen.js";
 import { crearAlmacenFirestore } from "./almacen/firestore.js";
+import {
+  crearCuentasFirebase,
+  type ProveedorCuentas,
+} from "./identidad/cuentas.js";
 import type { PerfilRepository } from "./usuarios/perfiles.js";
-import { crearPerfilesFirestore } from "./usuarios/perfiles-firestore.js";
+import { crearPerfilesAlmacen } from "./usuarios/perfiles-almacen.js";
 
 /** Puertos que usan las rutas; las pruebas inyectan dobles. */
 export interface Dependencias {
   tokenVerifier: TokenVerifier;
   perfiles: PerfilRepository;
+  /** Firebase Auth para la gestión de identidades (F4). */
+  cuentas: ProveedorCuentas;
   fuenteLegacy: FuenteLegacy;
   /** Almacén transaccional del motor de puntos (F2). */
   almacen: Almacen;
@@ -46,6 +52,14 @@ export function crearDependencias(config: AppConfig): Dependencias {
         registrar: async () => noConfigurado(),
         hayAdministradorActivo: async () => noConfigurado(),
       },
+      cuentas: {
+        obtener: async () => noConfigurado(),
+        buscarPorCorreo: async () => noConfigurado(),
+        crear: async () => noConfigurado(),
+        actualizar: async () => noConfigurado(),
+        eliminar: async () => noConfigurado(),
+        revocarSesiones: async () => noConfigurado(),
+      },
       fuenteLegacy,
       almacen: {
         leer: async () => noConfigurado(),
@@ -58,36 +72,38 @@ export function crearDependencias(config: AppConfig): Dependencias {
   }
 
   let verifier: TokenVerifier | undefined;
-  let perfiles: PerfilRepository | undefined;
+  let cuentas: ProveedorCuentas | undefined;
   let almacen: Almacen | undefined;
   const app = () => getFirebaseAdminApp(config);
   const getVerifier = () =>
     (verifier ??= crearVerificadorFirebase(getAuth(app())));
-  const getPerfiles = () =>
-    (perfiles ??= crearPerfilesFirestore(
-      getFirestore(app()),
-      config.firestorePrefix,
-    ));
+  const getCuentas = () => (cuentas ??= crearCuentasFirebase(getAuth(app())));
   const getAlmacen = () =>
     (almacen ??= crearAlmacenFirestore(
       getFirestore(app()),
       config.firestorePrefix,
     ));
 
+  const almacenPerezoso: Almacen = {
+    leer: (r) => getAlmacen().leer(r),
+    consultar: (c) => getAlmacen().consultar(c),
+    transaccion: (fn) => getAlmacen().transaccion(fn),
+    nuevoId: () => getAlmacen().nuevoId(),
+  };
   return {
     tokenVerifier: { verificar: (t) => getVerifier().verificar(t) },
-    perfiles: {
-      obtener: (uid) => getPerfiles().obtener(uid),
-      registrar: (p, e) => getPerfiles().registrar(p, e),
-      hayAdministradorActivo: () => getPerfiles().hayAdministradorActivo(),
+    // Perfiles sobre el mismo almacén que puntos, canjes e identidades.
+    perfiles: crearPerfilesAlmacen(almacenPerezoso),
+    cuentas: {
+      obtener: (u) => getCuentas().obtener(u),
+      buscarPorCorreo: (c) => getCuentas().buscarPorCorreo(c),
+      crear: (d) => getCuentas().crear(d),
+      actualizar: (u, c) => getCuentas().actualizar(u, c),
+      eliminar: (u) => getCuentas().eliminar(u),
+      revocarSesiones: (u) => getCuentas().revocarSesiones(u),
     },
     fuenteLegacy,
-    almacen: {
-      leer: (r) => getAlmacen().leer(r),
-      consultar: (c) => getAlmacen().consultar(c),
-      transaccion: (fn) => getAlmacen().transaccion(fn),
-      nuevoId: () => getAlmacen().nuevoId(),
-    },
+    almacen: almacenPerezoso,
     reloj,
   };
 }

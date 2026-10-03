@@ -27,6 +27,8 @@ function cumple(datos: Datos, [campo, op, valor]: Filtro): boolean {
       return v !== null && v !== undefined && v > x;
     case ">=":
       return v !== null && v !== undefined && v >= x;
+    case "array-contains":
+      return Array.isArray(v) && (v as unknown[]).includes(x);
   }
 }
 

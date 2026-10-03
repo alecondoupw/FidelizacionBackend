@@ -13,7 +13,7 @@
  */
 export type Datos = Record<string, unknown>;
 
-export type Operador = "==" | "<" | "<=" | ">" | ">=";
+export type Operador = "==" | "<" | "<=" | ">" | ">=" | "array-contains";
 export type Filtro = [campo: string, operador: Operador, valor: unknown];
 
 export interface Consulta {
@@ -56,4 +56,5 @@ export class DocumentoExistenteError extends Error {
   }
 }
 
-export const esRango = (op: Operador) => op !== "==";
+export const esRango = (op: Operador) =>
+  op === "<" || op === "<=" || op === ">" || op === ">=";

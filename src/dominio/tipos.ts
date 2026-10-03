@@ -18,6 +18,10 @@ export interface Perfil {
   vinculo: Vinculo;
   /** ISO 8601 UTC. */
   creadoEn: string;
+  /** El correo cambió y la persona aún debe verificar el nuevo (DEC-04, F4). */
+  verificarCorreo?: true;
+  /** Baja con anonimización (DEC-08): se conserva sólo para el historial. */
+  eliminado?: true;
 }
 
 export interface EventoAuditoria {

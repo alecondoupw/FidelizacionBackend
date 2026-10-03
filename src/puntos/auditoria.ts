@@ -1,7 +1,7 @@
 import type { Transaccion } from "../almacen/almacen.js";
 import { R } from "./rutas.js";
 
-export type AccionF2 =
+export type AccionAuditoria =
   | "regla.creada"
   | "regla.actualizada"
   | "regla.eliminada"
@@ -10,11 +10,18 @@ export type AccionF2 =
   | "beneficio.creado"
   | "beneficio.actualizado"
   | "canje.entregado"
-  | "canje.anulado";
+  | "canje.anulado"
+  // F4 (DEC-03/04/08)
+  | "administrador.creado"
+  | "administrador.actualizado"
+  | "administrador.eliminado"
+  | "cliente.actualizado"
+  | "cliente.eliminado"
+  | "perfil.actualizado";
 
-/** Evento de auditoría de F2: actor, objetivo y antes/después, sin correos (RN-02, SRC-02 p. 5). */
+/** Evento de auditoría (F2–F4): actor, objetivo y antes/después, sin correos ni contraseñas (RN-02, SRC-02 p. 5, DEC-08). */
 export interface RegistroAuditoria extends Record<string, unknown> {
-  accion: AccionF2;
+  accion: AccionAuditoria;
   actor: string;
   objetivo: string;
   en: string;

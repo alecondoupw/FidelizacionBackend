@@ -77,6 +77,14 @@ export function requireAuth(
     if (!perfil.activo) {
       throw new AppError(403, "FORBIDDEN", "La cuenta está desactivada.");
     }
+    // Tras un cambio de correo (DEC-04) se exige verificar el nuevo.
+    if (perfil.verificarCorreo && !req.token.correoVerificado) {
+      throw new AppError(
+        403,
+        "EMAIL_NOT_VERIFIED",
+        "Verifica tu nuevo correo para continuar.",
+      );
+    }
     req.auth = {
       uid: perfil.uid,
       rol: perfil.rol,

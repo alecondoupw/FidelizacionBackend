@@ -9,6 +9,7 @@ import {
 } from "./auth/token-verifier.js";
 import { loadConfig } from "./config/env.js";
 import type { Perfil } from "./dominio/tipos.js";
+import { crearCuentasEnMemoria } from "./identidad/cuentas.js";
 import { crearFuenteSintetica } from "./legacy/fuente-legacy.js";
 import { R } from "./puntos/rutas.js";
 import { huellaCorreo } from "./usuarios/correo.js";
@@ -66,6 +67,7 @@ async function montar(env: Record<string, string> = {}) {
   return createApp(config, {
     tokenVerifier: verifier,
     perfiles: repo,
+    cuentas: crearCuentasEnMemoria(),
     fuenteLegacy: crearFuenteSintetica(),
     almacen,
     reloj: () => AHORA,

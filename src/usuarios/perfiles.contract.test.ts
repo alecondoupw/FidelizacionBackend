@@ -4,7 +4,9 @@ import { loadConfig } from "../config/env.js";
 import type { EventoAuditoria, Perfil } from "../dominio/tipos.js";
 import { getFirebaseAdminApp } from "../firebase/admin.js";
 import { crearPerfilesEnMemoria, type PerfilRepository } from "./perfiles.js";
-import { crearPerfilesFirestore } from "./perfiles-firestore.js";
+import { crearAlmacenFirestore } from "../almacen/firestore.js";
+import { crearAlmacenEnMemoria } from "../almacen/memoria.js";
+import { crearPerfilesAlmacen } from "./perfiles-almacen.js";
 
 /**
  * Mismo contrato para la implementación en memoria (pruebas) y la de Firestore.
@@ -72,7 +74,7 @@ function contrato(nombre: string, crear: () => PerfilRepository) {
       const activo = perfil("e", { rol: "administrador" });
       await repo.registrar(activo, evento(activo.uid));
       expect(await repo.hayAdministradorActivo()).toBe(true);
-      if (nombre === "memoria") expect(antes).toBe(false);
+      if (nombre !== "firestore") expect(antes).toBe(false);
     });
 
     it("uid inexistente → null", async () => {
@@ -82,6 +84,9 @@ function contrato(nombre: string, crear: () => PerfilRepository) {
 }
 
 contrato("memoria", crearPerfilesEnMemoria);
+contrato("almacén en memoria", () =>
+  crearPerfilesAlmacen(crearAlmacenEnMemoria()),
+);
 
 const integracion = process.env.FIRESTORE_INTEGRATION === "1";
 describe.runIf(integracion)(
@@ -90,7 +95,9 @@ describe.runIf(integracion)(
     const prefijo = `prueba_${Date.now().toString(36)}_`;
     const db = () => getFirestore(getFirebaseAdminApp(loadConfig()));
 
-    contrato("firestore", () => crearPerfilesFirestore(db(), prefijo));
+    contrato("firestore", () =>
+      crearPerfilesAlmacen(crearAlmacenFirestore(db(), prefijo)),
+    );
 
     afterAll(async () => {
       for (const nombre of ["usuarios", "correos", "auditoria"]) {
