@@ -2,14 +2,17 @@ import cors from "cors";
 import express, { type Express } from "express";
 import helmet from "helmet";
 import type { AppConfig } from "./config/env.js";
+import type { Dependencias } from "./dependencias.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
 import { requestId } from "./http/request-id.js";
 import { healthRouter } from "./routes/health.js";
+import { meRouter } from "./routes/me.js";
+import { registroRouter } from "./routes/registro.js";
 
 export const API_PREFIX = "/api/v1";
 
-/** Construye la aplicación sin abrir puertos ni inicializar Firebase. */
-export function createApp(config: AppConfig): Express {
+/** Construye la aplicación sin abrir puertos; Firebase sólo se toca al usar una ruta protegida. */
+export function createApp(config: AppConfig, deps: Dependencias): Express {
   const app = express();
 
   app.disable("x-powered-by");
@@ -28,6 +31,8 @@ export function createApp(config: AppConfig): Express {
   app.use(express.json({ limit: "100kb" }));
 
   app.use(API_PREFIX, healthRouter());
+  app.use(API_PREFIX, meRouter(deps));
+  app.use(API_PREFIX, registroRouter(deps));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

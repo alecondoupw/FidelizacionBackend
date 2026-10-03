@@ -1,27 +1,32 @@
 import type { RequestHandler } from "express";
+import type { Marca, Rol } from "../dominio/tipos.js";
 import { AppError } from "../http/errors.js";
+import type { PerfilRepository } from "../usuarios/perfiles.js";
+import {
+  TokenInvalidoError,
+  type TokenVerificado,
+  type TokenVerifier,
+} from "./token-verifier.js";
 
 /**
- * Frontera de autorización de Express (I-01, SRC-02 pp. 14–15).
- *
- * Toda ruta protegida se monta detrás de `requireAuth` y, después, de los
- * guardas de recurso. Orden previsto, en este único lugar:
- *   1. Extraer `Authorization: Bearer <ID token>` (implementado: falla cerrado).
- *   2. Verificar el ID token con Firebase Admin SDK, incluida revocación — F1-BE-01.
- *   3. Cargar el perfil: rol (cliente | administrador) y estado activo — F1-BE-01/02.
- *   4. Autorizar rol, propietario del recurso y marca — cada lote F1–F6.
- * Ninguna regla de negocio se decide en el frontend.
- *
- * Los tipos siguientes son la forma propuesta en F0; se fijan con DEC-03/04 en F1.
+ * Frontera de autorización de Express (I-01, SRC-02 pp. 14–15). Único lugar
+ * donde se verifica identidad; ninguna regla de negocio se decide en el FE.
+ *   requireToken  → ID token válido (registro de un usuario recién creado).
+ *   requireAuth   → token + perfil registrado y activo (rol, marcas).
+ *   requireRole   → rol exigido; propietario y marca se autorizan por recurso.
  */
-export type Rol = "cliente" | "administrador";
-export type Marca = "zontes" | "kiden" | "niu";
-
 export interface AuthContext {
   uid: string;
   rol: Rol;
   activo: boolean;
   marcas: Marca[];
+}
+
+declare module "express-serve-static-core" {
+  interface Request {
+    token?: TokenVerificado;
+    auth?: AuthContext;
+  }
 }
 
 const BEARER = /^Bearer ([A-Za-z0-9._-]+)$/;
@@ -31,23 +36,67 @@ export function extractBearerToken(header: string | undefined): string | null {
   return match?.[1] ?? null;
 }
 
-/**
- * F0: falla cerrado. Sin token → 401; con token → 501 hasta implementar la
- * verificación en F1-BE-01. No se monta todavía en ninguna ruta de producto.
- */
-export function requireAuth(): RequestHandler {
-  return (req, _res, next) => {
-    const token = extractBearerToken(req.get("Authorization"));
-    if (!token) {
-      next(new AppError(401, "UNAUTHENTICATED", "Se requiere autenticación."));
-      return;
+const noAutenticado = () =>
+  new AppError(401, "UNAUTHENTICATED", "Se requiere autenticación.");
+
+async function verificarBearer(
+  header: string | undefined,
+  verifier: TokenVerifier,
+): Promise<TokenVerificado> {
+  const token = extractBearerToken(header);
+  if (!token) throw noAutenticado();
+  try {
+    return await verifier.verificar(token);
+  } catch (error) {
+    if (error instanceof TokenInvalidoError) throw noAutenticado();
+    throw error;
+  }
+}
+
+export function requireToken(verifier: TokenVerifier): RequestHandler {
+  return async (req, _res, next) => {
+    req.token = await verificarBearer(req.get("Authorization"), verifier);
+    next();
+  };
+}
+
+export function requireAuth(
+  verifier: TokenVerifier,
+  perfiles: PerfilRepository,
+): RequestHandler {
+  return async (req, _res, next) => {
+    req.token = await verificarBearer(req.get("Authorization"), verifier);
+    const perfil = await perfiles.obtener(req.token.uid);
+    if (!perfil) {
+      throw new AppError(
+        403,
+        "REGISTRATION_REQUIRED",
+        "Completa el registro para continuar.",
+      );
     }
-    next(
-      new AppError(
-        501,
-        "NOT_IMPLEMENTED",
-        "La verificación de identidad se implementa en F1.",
-      ),
-    );
+    if (!perfil.activo) {
+      throw new AppError(403, "FORBIDDEN", "La cuenta está desactivada.");
+    }
+    req.auth = {
+      uid: perfil.uid,
+      rol: perfil.rol,
+      activo: perfil.activo,
+      marcas: perfil.marcas,
+    };
+    next();
+  };
+}
+
+export function requireRole(rol: Rol): RequestHandler {
+  return (req, _res, next) => {
+    if (!req.auth) throw noAutenticado();
+    if (req.auth.rol !== rol) {
+      throw new AppError(
+        403,
+        "FORBIDDEN",
+        "No tienes permiso para esta acción.",
+      );
+    }
+    next();
   };
 }

@@ -2,7 +2,13 @@
 
 API **Express.js + TypeScript** de la plataforma de fidelización multimarca Zontes / Kiden / NIU. Express es la única capa que modifica datos sensibles: verifica identidad con Firebase Admin SDK, autoriza rol, estado, propietario y marca, y ejecuta las reglas de puntos y canjes. La documentación canónica vive en el Core de Obsidian del repositorio [FidelizacionDoc](https://github.com/alecondoupw/FidelizacionDoc) (`Zontes-Core/`).
 
-**Estado:** F0 — base técnica instalada y verificada. Sólo expone `GET /api/v1/health`; no hay endpoints de negocio ni conexión a Firebase.
+**Estado:** F1 — identidad implementada y probada con dobles: `GET /api/v1/health`, `GET /api/v1/me` y `POST /api/v1/clientes/registro` (contrato I-01/I-02 v1). La integración con el proyecto Firebase de desarrollo está pendiente; sin `FIREBASE_PROJECT_ID` las rutas protegidas responden 503.
+
+## Operación (proyecto de desarrollo)
+
+- `npm run admin:bootstrap -- --email <correo>`: crea el administrador inicial una sola vez y muestra un enlace para definir su contraseña.
+- `npm run dev:usuario-prueba -- --email <nombre>@ejemplo.test`: crea un usuario de prueba con correo verificado (sólo dominio `ejemplo.test`).
+- `FIRESTORE_INTEGRATION=1 npm run test:firebase`: contrato del repositorio contra Firestore real con colecciones temporales.
 
 ## Requisitos
 

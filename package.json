@@ -20,7 +20,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke": "node scripts/smoke.mjs",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build"
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build",
+    "test:firebase": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run src/usuarios/perfiles.contract.test.ts",
+    "admin:bootstrap": "tsx --env-file-if-exists=.env src/cli/bootstrap-admin.ts",
+    "dev:usuario-prueba": "tsx --env-file-if-exists=.env src/cli/usuario-prueba.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",

@@ -34,6 +34,13 @@ const envSchema = z.object({
     .trim()
     .optional()
     .transform((value) => value || undefined),
+  /** Fuente de clientes existentes (DEC-04). Sólo hay doble sintético en F1. */
+  LEGACY_SOURCE: z.enum(["sintetica"]).default("sintetica"),
+  /** Prefijo de colecciones Firestore; aísla pruebas de integración. */
+  FIRESTORE_PREFIX: z
+    .string()
+    .regex(/^[a-z0-9_]*$/, "Sólo minúsculas, dígitos y _.")
+    .default(""),
 });
 
 export interface AppConfig {
@@ -41,8 +48,10 @@ export interface AppConfig {
   host: string;
   port: number;
   corsAllowedOrigins: string[];
-  /** Ausente hasta DEC-02: el backend arranca sin Firebase. */
+  /** Ausente: el backend arranca, pero las rutas protegidas responden 503. */
   firebaseProjectId: string | undefined;
+  legacySource: "sintetica";
+  firestorePrefix: string;
 }
 
 export function loadConfig(
@@ -62,5 +71,7 @@ export function loadConfig(
     port: value.PORT,
     corsAllowedOrigins: value.CORS_ALLOWED_ORIGINS,
     firebaseProjectId: value.FIREBASE_PROJECT_ID,
+    legacySource: value.LEGACY_SOURCE,
+    firestorePrefix: value.FIRESTORE_PREFIX,
   };
 }

@@ -1,8 +1,9 @@
 import { createApp } from "./app.js";
 import { loadConfig } from "./config/env.js";
+import { crearDependencias } from "./dependencias.js";
 
 const config = loadConfig();
-const app = createApp(config);
+const app = createApp(config, crearDependencias(config));
 
 const server = app.listen(config.port, config.host, () => {
   console.log(

@@ -9,7 +9,15 @@ describe("loadConfig", () => {
       port: 4000,
       corsAllowedOrigins: ["http://localhost:3000"],
       firebaseProjectId: undefined,
+      legacySource: "sintetica",
+      firestorePrefix: "",
     });
+  });
+
+  it("rechaza un prefijo de colección con caracteres no permitidos", () => {
+    expect(() => loadConfig({ FIRESTORE_PREFIX: "../x" })).toThrow(
+      /Configuración de entorno inválida/,
+    );
   });
 
   it("acepta varios orígenes separados por coma", () => {

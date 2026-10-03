@@ -3,8 +3,8 @@ import { getApps } from "firebase-admin/app";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { API_PREFIX, createApp } from "./app.js";
-import { requireAuth } from "./auth/authorization.js";
 import { loadConfig } from "./config/env.js";
+import { crearDependencias } from "./dependencias.js";
 import { getFirebaseAdminApp } from "./firebase/admin.js";
 import { errorHandler } from "./http/errors.js";
 import { requestId } from "./http/request-id.js";
@@ -14,7 +14,7 @@ const config = loadConfig({
   NODE_ENV: "test",
   CORS_ALLOWED_ORIGINS: FE_ORIGIN,
 });
-const app = createApp(config);
+const app = createApp(config, crearDependencias(config));
 
 function expectErrorEnvelope(body: unknown, code: string) {
   expect(body).toEqual({
@@ -137,33 +137,20 @@ describe("errores con sobre consistente", () => {
   });
 });
 
-describe("frontera de autorización (F0, falla cerrado)", () => {
-  const guarded = express();
-  guarded.use(requestId);
-  guarded.get("/protegida", requireAuth(), (_req, res) => {
-    res.json({ alcanzado: true });
-  });
-  guarded.use(errorHandler);
-
-  it("401 sin token", async () => {
-    const res = await request(guarded).get("/protegida");
+describe("rutas protegidas sin Firebase configurado", () => {
+  it("401 sin token, antes de tocar Firebase", async () => {
+    const res = await request(app).get(`${API_PREFIX}/me`);
     expect(res.status).toBe(401);
     expectErrorEnvelope(res.body, "UNAUTHENTICATED");
   });
 
-  it("401 con esquema distinto de Bearer", async () => {
-    const res = await request(guarded)
-      .get("/protegida")
-      .set("Authorization", "Basic abc");
-    expect(res.status).toBe(401);
-  });
-
-  it("nunca alcanza el handler con un token sin verificar", async () => {
-    const res = await request(guarded)
-      .get("/protegida")
-      .set("Authorization", "Bearer token.sin.verificar");
-    expect(res.status).toBe(501);
-    expect(res.body).not.toHaveProperty("alcanzado");
+  it("503 AUTH_NOT_CONFIGURED con token, sin inicializar Admin SDK", async () => {
+    const res = await request(app)
+      .get(`${API_PREFIX}/me`)
+      .set("Authorization", "Bearer token.de.prueba");
+    expect(res.status).toBe(503);
+    expectErrorEnvelope(res.body, "AUTH_NOT_CONFIGURED");
+    expect(getApps()).toHaveLength(0);
   });
 });
 
