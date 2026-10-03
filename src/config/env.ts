@@ -41,6 +41,26 @@ const envSchema = z.object({
     .string()
     .regex(/^[a-z0-9_]*$/, "Sólo minúsculas, dígitos y _.")
     .default(""),
+  /** Claves de integración (DEC-05): «sistema:sha256hex» separadas por coma. */
+  INTEGRACION_CLAVES: z
+    .string()
+    .default("")
+    .transform((v) =>
+      v
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    )
+    .pipe(
+      z.array(
+        z
+          .string()
+          .regex(
+            /^[a-z0-9-]{2,32}:[0-9a-f]{64}$/,
+            "Formato sistema:sha256 (64 hex) por clave.",
+          ),
+      ),
+    ),
 });
 
 export interface AppConfig {
@@ -52,6 +72,8 @@ export interface AppConfig {
   firebaseProjectId: string | undefined;
   legacySource: "sintetica";
   firestorePrefix: string;
+  /** hash SHA-256 hex → sistema. */
+  integracionClaves: Map<string, string>;
 }
 
 export function loadConfig(
@@ -73,5 +95,11 @@ export function loadConfig(
     firebaseProjectId: value.FIREBASE_PROJECT_ID,
     legacySource: value.LEGACY_SOURCE,
     firestorePrefix: value.FIRESTORE_PREFIX,
+    integracionClaves: new Map(
+      value.INTEGRACION_CLAVES.map((entrada) => {
+        const [sistema, hash] = entrada.split(":") as [string, string];
+        return [hash, sistema];
+      }),
+    ),
   };
 }

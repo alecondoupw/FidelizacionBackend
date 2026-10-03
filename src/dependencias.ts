@@ -9,6 +9,8 @@ import {
   crearFuenteSintetica,
   type FuenteLegacy,
 } from "./legacy/fuente-legacy.js";
+import type { Almacen } from "./almacen/almacen.js";
+import { crearAlmacenFirestore } from "./almacen/firestore.js";
 import type { PerfilRepository } from "./usuarios/perfiles.js";
 import { crearPerfilesFirestore } from "./usuarios/perfiles-firestore.js";
 
@@ -17,6 +19,8 @@ export interface Dependencias {
   tokenVerifier: TokenVerifier;
   perfiles: PerfilRepository;
   fuenteLegacy: FuenteLegacy;
+  /** Almacén transaccional del motor de puntos (F2). */
+  almacen: Almacen;
   reloj: () => Date;
 }
 
@@ -43,17 +47,29 @@ export function crearDependencias(config: AppConfig): Dependencias {
         hayAdministradorActivo: async () => noConfigurado(),
       },
       fuenteLegacy,
+      almacen: {
+        leer: async () => noConfigurado(),
+        consultar: async () => noConfigurado(),
+        transaccion: async () => noConfigurado(),
+        nuevoId: () => noConfigurado(),
+      },
       reloj,
     };
   }
 
   let verifier: TokenVerifier | undefined;
   let perfiles: PerfilRepository | undefined;
+  let almacen: Almacen | undefined;
   const app = () => getFirebaseAdminApp(config);
   const getVerifier = () =>
     (verifier ??= crearVerificadorFirebase(getAuth(app())));
   const getPerfiles = () =>
     (perfiles ??= crearPerfilesFirestore(
+      getFirestore(app()),
+      config.firestorePrefix,
+    ));
+  const getAlmacen = () =>
+    (almacen ??= crearAlmacenFirestore(
       getFirestore(app()),
       config.firestorePrefix,
     ));
@@ -66,6 +82,12 @@ export function crearDependencias(config: AppConfig): Dependencias {
       hayAdministradorActivo: () => getPerfiles().hayAdministradorActivo(),
     },
     fuenteLegacy,
+    almacen: {
+      leer: (r) => getAlmacen().leer(r),
+      consultar: (c) => getAlmacen().consultar(c),
+      transaccion: (fn) => getAlmacen().transaccion(fn),
+      nuevoId: () => getAlmacen().nuevoId(),
+    },
     reloj,
   };
 }

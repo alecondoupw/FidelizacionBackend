@@ -11,8 +11,26 @@ describe("loadConfig", () => {
       firebaseProjectId: undefined,
       legacySource: "sintetica",
       firestorePrefix: "",
+      integracionClaves: new Map(),
     });
   });
+
+  it("lee claves de integración como hash → sistema", () => {
+    const hash = "a".repeat(64);
+    expect(
+      loadConfig({ INTEGRACION_CLAVES: `facturacion:${hash}` })
+        .integracionClaves,
+    ).toEqual(new Map([[hash, "facturacion"]]));
+  });
+
+  it.each([["facturacion"], ["facturacion:123"], ["FACT:" + "a".repeat(64)]])(
+    "rechaza una clave de integración mal formada %s",
+    (valor) => {
+      expect(() => loadConfig({ INTEGRACION_CLAVES: valor })).toThrow(
+        /Configuración de entorno inválida/,
+      );
+    },
+  );
 
   it("rechaza un prefijo de colección con caracteres no permitidos", () => {
     expect(() => loadConfig({ FIRESTORE_PREFIX: "../x" })).toThrow(

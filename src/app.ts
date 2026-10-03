@@ -6,6 +6,9 @@ import type { Dependencias } from "./dependencias.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
 import { requestId } from "./http/request-id.js";
 import { healthRouter } from "./routes/health.js";
+import { integracionRouter } from "./routes/integracion.js";
+import { puntosAdminRouter } from "./routes/puntos-admin.js";
+import { puntosClienteRouter } from "./routes/puntos-cliente.js";
 import { meRouter } from "./routes/me.js";
 import { registroRouter } from "./routes/registro.js";
 
@@ -33,6 +36,9 @@ export function createApp(config: AppConfig, deps: Dependencias): Express {
   app.use(API_PREFIX, healthRouter());
   app.use(API_PREFIX, meRouter(deps));
   app.use(API_PREFIX, registroRouter(deps));
+  app.use(API_PREFIX, puntosClienteRouter(deps));
+  app.use(API_PREFIX, puntosAdminRouter(deps));
+  app.use(API_PREFIX, integracionRouter(deps, config.integracionClaves));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

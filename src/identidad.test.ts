@@ -13,6 +13,7 @@ import type { Dependencias } from "./dependencias.js";
 import type { Perfil } from "./dominio/tipos.js";
 import { errorHandler } from "./http/errors.js";
 import { requestId } from "./http/request-id.js";
+import { crearAlmacenEnMemoria } from "./almacen/memoria.js";
 import { crearFuenteSintetica } from "./legacy/fuente-legacy.js";
 import { crearPerfilesEnMemoria } from "./usuarios/perfiles.js";
 
@@ -129,6 +130,7 @@ beforeEach(async () => {
     tokenVerifier: verifier,
     perfiles,
     fuenteLegacy: crearFuenteSintetica(),
+    almacen: crearAlmacenEnMemoria(),
     reloj: () => new Date("2026-10-03T12:00:00.000Z"),
   };
   app = createApp(config, deps);

@@ -3,6 +3,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import type { CuentasAuth } from "../admin/bootstrap.js";
 import { loadConfig } from "../config/env.js";
 import { getFirebaseAdminApp } from "../firebase/admin.js";
+import { crearAlmacenFirestore } from "../almacen/firestore.js";
 import { crearPerfilesFirestore } from "../usuarios/perfiles-firestore.js";
 
 /** Conexión común de los comandos de operación (los ejecuta Paulo, no la API). */
@@ -15,6 +16,7 @@ export function conectarFirebase() {
     auth,
     cuentas: crearCuentasAuth(auth),
     perfiles: crearPerfilesFirestore(getFirestore(app), config.firestorePrefix),
+    almacen: crearAlmacenFirestore(getFirestore(app), config.firestorePrefix),
   };
 }
 
