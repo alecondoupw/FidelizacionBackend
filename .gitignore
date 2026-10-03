@@ -1,0 +1,17 @@
+# dependencias y salida
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# variables de entorno y credenciales: nunca en Git
+.env*
+!.env.example
+*.pem
+*service-account*.json
+*-firebase-adminsdk-*.json
+
+# registros y sistema
+npm-debug.log*
+.DS_Store
+Thumbs.db
