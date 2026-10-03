@@ -45,6 +45,10 @@ export interface Transaccion extends Lector {
 
 export interface Almacen extends Lector {
   transaccion<R>(fn: (tx: Transaccion) => Promise<R>): Promise<R>;
+  /** Cantidad de documentos que cumplen la consulta (agregación de Firestore, sin leerlos). */
+  contar(
+    consulta: Omit<Consulta, "ordenId" | "despuesDeId" | "limite">,
+  ): Promise<number>;
   /** Identificador aleatorio para documentos nuevos. */
   nuevoId(): string;
 }

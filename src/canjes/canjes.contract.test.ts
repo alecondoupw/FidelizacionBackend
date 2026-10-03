@@ -562,6 +562,7 @@ describe.runIf(integracion)("integración Firestore · catálogo y canje", () =>
       "vencimientos",
       "beneficios",
       "codigos",
+      "libro",
     ]) {
       await db().recursiveDelete(db().collection(`${prefijo}${c}`));
     }

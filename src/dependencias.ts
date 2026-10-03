@@ -64,6 +64,7 @@ export function crearDependencias(config: AppConfig): Dependencias {
       almacen: {
         leer: async () => noConfigurado(),
         consultar: async () => noConfigurado(),
+        contar: async () => noConfigurado(),
         transaccion: async () => noConfigurado(),
         nuevoId: () => noConfigurado(),
       },
@@ -87,6 +88,7 @@ export function crearDependencias(config: AppConfig): Dependencias {
   const almacenPerezoso: Almacen = {
     leer: (r) => getAlmacen().leer(r),
     consultar: (c) => getAlmacen().consultar(c),
+    contar: (c) => getAlmacen().contar(c),
     transaccion: (fn) => getAlmacen().transaccion(fn),
     nuevoId: () => getAlmacen().nuevoId(),
   };

@@ -71,6 +71,7 @@ export function crearAlmacenEnMemoria(): Almacen & {
   return {
     leer,
     consultar,
+    contar: async (c) => (await consultar(c)).length,
     nuevoId: () => randomUUID().replace(/-/g, "").slice(0, 20),
     volcado: () => new Map(docs),
     transaccion<R>(fn: (tx: Transaccion) => Promise<R>): Promise<R> {

@@ -52,6 +52,9 @@ export function crearAlmacenFirestore(db: Firestore, prefijo = ""): Almacen {
 
   return {
     ...lectorDe(),
+    async contar(c) {
+      return (await consulta(c).count().get()).data().count;
+    },
     nuevoId: () => db.collection("_").doc().id,
     transaccion<R>(fn: (tx: Transaccion) => Promise<R>) {
       return db

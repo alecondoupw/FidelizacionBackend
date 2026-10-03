@@ -13,6 +13,7 @@ import { puntosAdminRouter } from "./routes/puntos-admin.js";
 import { puntosClienteRouter } from "./routes/puntos-cliente.js";
 import { meRouter } from "./routes/me.js";
 import { registroRouter } from "./routes/registro.js";
+import { reportesRouter } from "./routes/reportes.js";
 
 export const API_PREFIX = "/api/v1";
 
@@ -42,6 +43,7 @@ export function createApp(config: AppConfig, deps: Dependencias): Express {
   app.use(API_PREFIX, puntosAdminRouter(deps));
   app.use(API_PREFIX, canjesRouter(deps));
   app.use(API_PREFIX, identidadesRouter(deps));
+  app.use(API_PREFIX, reportesRouter(deps));
   app.use(API_PREFIX, integracionRouter(deps, config.integracionClaves));
 
   app.use(notFoundHandler);

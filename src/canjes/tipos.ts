@@ -71,3 +71,39 @@ export interface Canje extends Record<string, unknown> {
   movimientoId: string;
   lotes: { loteId: string; puntos: number }[];
 }
+
+/**
+ * codigos/{codigo}: unicidad del código, búsqueda en mostrador y registro
+ * global de canjes para reportes (F5, DEC-09) sin consultas por grupo.
+ */
+export interface IndiceCanje extends Record<string, unknown> {
+  uid: string;
+  canjeId: string;
+  marca: Marca;
+  beneficioId: string;
+  beneficioNombre: string;
+  puntos: number;
+  estado: Canje["estado"];
+  emitidoEn: string;
+  venceEn: string;
+  entregadoEn: string | null;
+  anuladoEn: string | null;
+}
+
+export const indiceDe = (
+  c: Canje,
+  uid: string,
+  canjeId: string,
+): IndiceCanje => ({
+  uid,
+  canjeId,
+  marca: c.marca,
+  beneficioId: c.beneficioId,
+  beneficioNombre: c.beneficioNombre,
+  puntos: c.puntos,
+  estado: c.estado,
+  emitidoEn: c.emitidoEn,
+  venceEn: c.venceEn,
+  entregadoEn: c.entregadoEn,
+  anuladoEn: c.anuladoEn,
+});

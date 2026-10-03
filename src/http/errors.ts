@@ -28,6 +28,8 @@ export type ErrorCode =
   | "EMAIL_IN_USE"
   | "LAST_ADMIN"
   | "SELF_ACTION"
+  | "RANGE_TOO_LARGE"
+  | "TOO_MANY_ROWS"
   | "NOT_FOUND"
   | "PAYLOAD_TOO_LARGE"
   | "UNSUPPORTED_MEDIA_TYPE"

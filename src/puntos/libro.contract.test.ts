@@ -588,6 +588,7 @@ describe.runIf(integracion)("integración Firestore · motor de puntos", () => {
       "vigencias",
       "eventos",
       "vencimientos",
+      "libro",
     ]) {
       await db().recursiveDelete(db().collection(`${prefijo}${c}`));
     }

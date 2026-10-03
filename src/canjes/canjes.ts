@@ -11,6 +11,7 @@ import {
   generadorIds,
   leerIdempotencia,
   leerLotes,
+  escribirMovimiento,
   movimiento,
   type RegistroIdempotencia,
 } from "../puntos/libro.js";
@@ -23,7 +24,12 @@ import {
   estadoEfectivo,
   generarCodigo,
 } from "./disponibilidad.js";
-import type { Beneficio, Canje, EstadoCanje } from "./tipos.js";
+import {
+  indiceDe,
+  type Beneficio,
+  type Canje,
+  type EstadoCanje,
+} from "./tipos.js";
 
 /** Vista del canje para su propietario y para administración. */
 export interface CanjeVista {
@@ -121,8 +127,11 @@ export async function canjear(
       }
       aplicarPlan(tx, s.uid, b.marca, lotes, plan, ahora, nuevoId);
       const movimientoId = nuevoId();
-      tx.crear(
-        `${R.movimientos(s.uid, b.marca)}/${movimientoId}`,
+      escribirMovimiento(
+        tx,
+        s.uid,
+        b.marca,
+        movimientoId,
         movimiento("canje", -b.puntos, ahora, s.uid, {
           motivo: `Canje: ${b.nombre}`,
           origen: "canje",
@@ -163,7 +172,7 @@ export async function canjear(
         lotes: plan.consumos,
       };
       tx.crear(R.canje(s.uid, canjeId), canje);
-      tx.crear(R.codigo(codigo), { uid: s.uid, canjeId });
+      tx.crear(R.codigo(codigo), indiceDe(canje, s.uid, canjeId));
       const respuesta = {
         canje: vistaCanje(canje, ahora),
         disponible: plan.disponibleFinal,
@@ -275,6 +284,7 @@ export async function entregarCanje(
       entregadoEn: ahora.toISOString(),
     };
     tx.fijar(R.canje(uid, canjeId), nuevo);
+    tx.fijar(R.codigo(codigo), indiceDe(nuevo, uid, canjeId));
     auditar(tx, almacen.nuevoId(), {
       accion: "canje.entregado",
       actor,
@@ -341,8 +351,11 @@ export async function anularCanje(
       devueltos.add(loteId);
     }
     const lotes = [...porId.values()];
-    tx.crear(
-      `${R.movimientos(uid, canje.marca)}/${nuevoId()}`,
+    escribirMovimiento(
+      tx,
+      uid,
+      canje.marca,
+      nuevoId(),
       movimiento("canje", canje.puntos, ahora, actor, {
         motivo: `Anulación del canje ${codigo}: ${motivo}`,
         origen: "anulacion",
@@ -382,6 +395,7 @@ export async function anularCanje(
       motivoAnulacion: motivo,
     };
     tx.fijar(R.canje(uid, canjeId), nuevo);
+    tx.fijar(R.codigo(codigo), indiceDe(nuevo, uid, canjeId));
     auditar(tx, almacen.nuevoId(), {
       accion: "canje.anulado",
       actor,

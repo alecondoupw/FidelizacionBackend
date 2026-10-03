@@ -125,6 +125,17 @@ function contrato(nombre: string, crear: () => Almacen) {
       expect(await ids()).toEqual(["p1"]);
       expect(await ids("p1")).toEqual(["p2"]);
       expect(await ids("p2")).toEqual([]);
+      // Agregación de conteo con los mismos filtros, sin leer documentos.
+      expect(
+        await a.contar({
+          coleccion: "personas",
+          donde: [
+            ["rol", "==", "c"],
+            ["marcas", "array-contains", "zontes"],
+          ],
+        }),
+      ).toBe(3);
+      expect(await a.contar({ coleccion: "personas" })).toBe(4);
     });
 
     it("las subcolecciones no se mezclan con su colección padre", async () => {

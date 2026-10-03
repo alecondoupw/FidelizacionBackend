@@ -17,7 +17,9 @@ export type AccionAuditoria =
   | "administrador.eliminado"
   | "cliente.actualizado"
   | "cliente.eliminado"
-  | "perfil.actualizado";
+  | "perfil.actualizado"
+  // F5 (DEC-09)
+  | "exportacion.generada";
 
 /** Evento de auditoría (F2–F4): actor, objetivo y antes/después, sin correos ni contraseñas (RN-02, SRC-02 p. 5, DEC-08). */
 export interface RegistroAuditoria extends Record<string, unknown> {

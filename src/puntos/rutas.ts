@@ -11,6 +11,7 @@ import type { Evento } from "./tipos.js";
  *   usuarios/{uid}/marcas/{marca}/lotes/{id}
  *   vencimientos/{uid}__{marca}__{loteId}        lotes con fecha de vencimiento pendiente
  *   auditoria/{id}
+ *   libro/{id del movimiento}                    copia global para reportes (F5)
  */
 export const R = {
   regla: (marca: Marca, evento: Evento) => `reglas/${marca}__${evento}`,
@@ -35,6 +36,9 @@ export const R = {
   codigo: (codigo: string) => `codigos/${codigo}`,
   lote: (uid: string, marca: Marca, loteId: string) =>
     `usuarios/${uid}/marcas/${marca}/lotes/${loteId}`,
+  // F5 (DEC-09): copia global de cada movimiento para reportes y exportación
+  libro: "libro",
+  asiento: (id: string) => `libro/${id}`,
 };
 
 export const idRegla = (marca: Marca, evento: Evento) => `${marca}__${evento}`;

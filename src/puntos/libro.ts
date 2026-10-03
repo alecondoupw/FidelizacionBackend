@@ -149,6 +149,51 @@ export function movimiento(
   };
 }
 
+/** Copia global de un movimiento (F5): mismo id, sin el detalle de lotes. */
+export interface Asiento extends Record<string, unknown> {
+  uid: string;
+  marca: Marca;
+  tipo: TipoMovimiento;
+  puntos: number;
+  fecha: string;
+  evento: Evento | null;
+  origen: string | null;
+  motivo: string | null;
+  actor: string;
+}
+
+export const asientoDe = (
+  uid: string,
+  marca: Marca,
+  m: Movimiento,
+): Asiento => ({
+  uid,
+  marca,
+  tipo: m.tipo,
+  puntos: m.puntos,
+  fecha: m.fecha,
+  evento: m.evento,
+  origen: m.origen,
+  motivo: m.motivo,
+  actor: m.actor,
+});
+
+/**
+ * Único punto de escritura de movimientos: el del cliente y su asiento en el
+ * libro global, en la misma transacción, para que los reportes (DEC-09)
+ * cuadren siempre con el historial.
+ */
+export function escribirMovimiento(
+  tx: Transaccion,
+  uid: string,
+  marca: Marca,
+  id: string,
+  m: Movimiento,
+) {
+  tx.crear(`${R.movimientos(uid, marca)}/${id}`, m);
+  tx.crear(R.asiento(id), asientoDe(uid, marca, m));
+}
+
 /** Escribe vencimientos y restantes de un plan. Sólo escrituras: llamar tras leer todo. */
 export function aplicarPlan(
   tx: Transaccion,
@@ -162,8 +207,11 @@ export function aplicarPlan(
   const porId = new Map(lotes.map((l) => [l.id, l]));
   for (const { loteId, puntos } of plan.vencidos) {
     const lote = porId.get(loteId)!;
-    tx.crear(
-      `${R.movimientos(uid, marca)}/${nuevoId()}`,
+    escribirMovimiento(
+      tx,
+      uid,
+      marca,
+      nuevoId(),
       movimiento("vencimiento", -puntos, ahora, "sistema", {
         motivo: `Vencimiento de puntos otorgados el ${FECHA_LOCAL.format(new Date(lote.datos.otorgadoEn))}`,
         lotes: [{ loteId, puntos }],
@@ -196,8 +244,11 @@ function otorgarLote(
   const venceEn = calcularVencimiento(ahora, vigencia);
   const loteId = almacen.nuevoId();
   const { tipo, actor, ...extra } = datosMovimiento;
-  tx.crear(
-    `${R.movimientos(uid, marca)}/${movimientoId}`,
+  escribirMovimiento(
+    tx,
+    uid,
+    marca,
+    movimientoId,
     movimiento(tipo, puntos, ahora, actor, {
       ...extra,
       venceEn,
@@ -387,8 +438,11 @@ export async function ajustarPuntos(
         },
       );
     } else {
-      tx.crear(
-        `${R.movimientos(uid, a.marca)}/${movimientoId}`,
+      escribirMovimiento(
+        tx,
+        uid,
+        a.marca,
+        movimientoId,
         movimiento("ajuste", a.puntos, ahora, a.actor, {
           origen,
           motivo: a.motivo,
