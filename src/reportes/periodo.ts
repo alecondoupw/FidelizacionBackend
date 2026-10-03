@@ -33,7 +33,8 @@ export const MAX_DIAS = 366;
 const EN = { in: tz(ZONA) };
 const FECHA = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-function inicioDelDia(fecha: string): Date {
+/** Instante UTC del inicio de una fecha local de Bolivia (AAAA-MM-DD). */
+export function inicioDelDia(fecha: string): Date {
   const m = FECHA.exec(fecha);
   if (!m) throw new AppError(422, "VALIDATION_ERROR", "Fecha inválida.");
   const d = new TZDate(Number(m[1]), Number(m[2]) - 1, Number(m[3]), ZONA);

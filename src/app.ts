@@ -6,6 +6,7 @@ import type { Dependencias } from "./dependencias.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
 import { requestId } from "./http/request-id.js";
 import { canjesRouter } from "./routes/canjes.js";
+import { contenidosRouter } from "./routes/contenidos.js";
 import { healthRouter } from "./routes/health.js";
 import { identidadesRouter } from "./routes/identidades.js";
 import { integracionRouter } from "./routes/integracion.js";
@@ -44,6 +45,7 @@ export function createApp(config: AppConfig, deps: Dependencias): Express {
   app.use(API_PREFIX, canjesRouter(deps));
   app.use(API_PREFIX, identidadesRouter(deps));
   app.use(API_PREFIX, reportesRouter(deps));
+  app.use(API_PREFIX, contenidosRouter(deps));
   app.use(API_PREFIX, integracionRouter(deps, config.integracionClaves));
 
   app.use(notFoundHandler);

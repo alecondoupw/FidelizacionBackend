@@ -39,6 +39,9 @@ export const R = {
   // F5 (DEC-09): copia global de cada movimiento para reportes y exportación
   libro: "libro",
   asiento: (id: string) => `libro/${id}`,
+  // F6 (DEC-10)
+  contenidos: "contenidos",
+  contenido: (id: string) => `contenidos/${id}`,
 };
 
 export const idRegla = (marca: Marca, evento: Evento) => `${marca}__${evento}`;
