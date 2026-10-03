@@ -1,0 +1,90 @@
+{
+  "nota": "Catálogo SINTÉTICO para desarrollo (DEC-07). Nombres, puntos y stock son ilustrativos; no representan productos reales de las marcas.",
+  "beneficios": [
+    {
+      "id": "zontes-casco-ejemplo",
+      "marca": "zontes",
+      "nombre": "Casco integral (ejemplo)",
+      "descripcion": "Beneficio de prueba con tallas y stock limitado.",
+      "categoria": "accesorios",
+      "puntos": 120,
+      "activo": true,
+      "disponibleDesde": null,
+      "vigenciaCuponDias": 30,
+      "caracteristicas": ["Dato de prueba", "Tallas S, M y L"],
+      "variantes": [
+        { "id": "talla-s", "nombre": "Talla S", "stock": 0 },
+        { "id": "talla-m", "nombre": "Talla M", "stock": 3 },
+        { "id": "talla-l", "nombre": "Talla L", "stock": 12 }
+      ]
+    },
+    {
+      "id": "zontes-mantenimiento-ejemplo",
+      "marca": "zontes",
+      "nombre": "Revisión de mantenimiento (ejemplo)",
+      "descripcion": "Servicio de prueba sin límite de cupos.",
+      "categoria": "servicios",
+      "puntos": 80,
+      "activo": true,
+      "disponibleDesde": null,
+      "vigenciaCuponDias": 60,
+      "caracteristicas": ["Dato de prueba"],
+      "variantes": [{ "id": "unica", "nombre": "Única", "stock": null }]
+    },
+    {
+      "id": "kiden-chaqueta-ejemplo",
+      "marca": "kiden",
+      "nombre": "Chaqueta de ruta (ejemplo)",
+      "descripcion": "Beneficio de prueba con últimas unidades.",
+      "categoria": "ropa",
+      "puntos": 200,
+      "activo": true,
+      "disponibleDesde": null,
+      "vigenciaCuponDias": 30,
+      "caracteristicas": ["Dato de prueba"],
+      "variantes": [
+        { "id": "negra-m", "nombre": "Negra · M", "stock": 2 },
+        { "id": "negra-l", "nombre": "Negra · L", "stock": 1 }
+      ]
+    },
+    {
+      "id": "kiden-descuento-ejemplo",
+      "marca": "kiden",
+      "nombre": "Descuento en repuestos (ejemplo)",
+      "descripcion": "Descuento de prueba sin límite.",
+      "categoria": "descuentos",
+      "puntos": 4,
+      "activo": true,
+      "disponibleDesde": null,
+      "vigenciaCuponDias": 15,
+      "caracteristicas": ["Dato de prueba"],
+      "variantes": [{ "id": "unica", "nombre": "Única", "stock": null }]
+    },
+    {
+      "id": "niu-rodada-ejemplo",
+      "marca": "niu",
+      "nombre": "Rodada urbana (ejemplo)",
+      "descripcion": "Experiencia de prueba que todavía no está disponible.",
+      "categoria": "experiencias",
+      "puntos": 150,
+      "activo": true,
+      "disponibleDesde": "2027-01-01T04:00:00.000Z",
+      "vigenciaCuponDias": 10,
+      "caracteristicas": ["Dato de prueba"],
+      "variantes": [{ "id": "unica", "nombre": "Única", "stock": 20 }]
+    },
+    {
+      "id": "niu-casco-agotado-ejemplo",
+      "marca": "niu",
+      "nombre": "Casco urbano (ejemplo)",
+      "descripcion": "Beneficio de prueba agotado.",
+      "categoria": "accesorios",
+      "puntos": 90,
+      "activo": true,
+      "disponibleDesde": null,
+      "vigenciaCuponDias": 30,
+      "caracteristicas": ["Dato de prueba"],
+      "variantes": [{ "id": "unica", "nombre": "Única", "stock": 0 }]
+    }
+  ]
+}

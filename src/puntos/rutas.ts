@@ -27,6 +27,14 @@ export const R = {
   vencimiento: (uid: string, marca: Marca, loteId: string) =>
     `vencimientos/${uid}__${marca}__${loteId}`,
   auditoria: (id: string) => `auditoria/${id}`,
+  // F3 (DEC-07)
+  beneficios: "beneficios",
+  beneficio: (id: string) => `beneficios/${id}`,
+  canjes: (uid: string) => `usuarios/${uid}/canjes`,
+  canje: (uid: string, id: string) => `usuarios/${uid}/canjes/${id}`,
+  codigo: (codigo: string) => `codigos/${codigo}`,
+  lote: (uid: string, marca: Marca, loteId: string) =>
+    `usuarios/${uid}/marcas/${marca}/lotes/${loteId}`,
 };
 
 export const idRegla = (marca: Marca, evento: Evento) => `${marca}__${evento}`;

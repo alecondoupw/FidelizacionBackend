@@ -37,8 +37,8 @@ export type ResultadoEvento =
       motivo: "sin_regla" | "regla_inactiva";
     };
 
-interface RegistroIdempotencia extends Record<string, unknown> {
-  tipo: "evento" | "ajuste";
+export interface RegistroIdempotencia extends Record<string, unknown> {
+  tipo: "evento" | "ajuste" | "canje";
   /** Huella de lo solicitado: un reintento con datos distintos es un conflicto. */
   firma: string;
   registradoEn: string;
@@ -48,7 +48,7 @@ interface RegistroIdempotencia extends Record<string, unknown> {
 export const claveIdempotencia = (origen: string, idExterno: string) =>
   createHash("sha256").update(`${origen}|${idExterno}`, "utf8").digest("hex");
 
-const firmaDe = (partes: unknown[]) =>
+export const firmaDe = (partes: unknown[]) =>
   createHash("sha256").update(JSON.stringify(partes), "utf8").digest("hex");
 
 const FECHA_LOCAL = new Intl.DateTimeFormat("es-BO", {
@@ -56,7 +56,7 @@ const FECHA_LOCAL = new Intl.DateTimeFormat("es-BO", {
   timeZone: ZONA,
 });
 
-async function leerIdempotencia(
+export async function leerIdempotencia(
   tx: Transaccion,
   clave: string,
   tipo: RegistroIdempotencia["tipo"],
@@ -111,7 +111,11 @@ async function resolverCliente(
   return indice.uid;
 }
 
-async function leerLotes(tx: Transaccion | Almacen, uid: string, marca: Marca) {
+export async function leerLotes(
+  tx: Transaccion | Almacen,
+  uid: string,
+  marca: Marca,
+) {
   return tx.consultar<Lote>({
     coleccion: R.lotes(uid, marca),
     donde: [["restante", ">", 0]],
@@ -119,12 +123,12 @@ async function leerLotes(tx: Transaccion | Almacen, uid: string, marca: Marca) {
 }
 
 /** Contador de movimientos dentro de una transacción para ids únicos y ordenados. */
-function generadorIds(almacen: Almacen, ahora: Date) {
+export function generadorIds(almacen: Almacen, ahora: Date) {
   let secuencia = 0;
   return () => idMovimiento(ahora, secuencia++, almacen.nuevoId());
 }
 
-function movimiento(
+export function movimiento(
   tipo: TipoMovimiento,
   puntos: number,
   ahora: Date,
@@ -146,7 +150,7 @@ function movimiento(
 }
 
 /** Escribe vencimientos y restantes de un plan. Sólo escrituras: llamar tras leer todo. */
-function aplicarPlan(
+export function aplicarPlan(
   tx: Transaccion,
   uid: string,
   marca: Marca,
@@ -219,7 +223,7 @@ function otorgarLote(
   return { venceEn };
 }
 
-const fijarSaldo = (
+export const fijarSaldo = (
   tx: Transaccion,
   uid: string,
   marca: Marca,

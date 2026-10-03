@@ -6,7 +6,11 @@ export type AccionF2 =
   | "regla.actualizada"
   | "regla.eliminada"
   | "vigencia.actualizada"
-  | "puntos.ajuste";
+  | "puntos.ajuste"
+  | "beneficio.creado"
+  | "beneficio.actualizado"
+  | "canje.entregado"
+  | "canje.anulado";
 
 /** Evento de auditoría de F2: actor, objetivo y antes/después, sin correos (RN-02, SRC-02 p. 5). */
 export interface RegistroAuditoria extends Record<string, unknown> {
