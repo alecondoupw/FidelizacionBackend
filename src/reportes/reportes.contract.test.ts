@@ -13,14 +13,13 @@ import { AppError } from "../http/errors.js";
 import { eliminarCliente } from "../identidad/clientes.js";
 import { crearCuentasEnMemoria } from "../identidad/cuentas.js";
 import {
-  ajustarPuntos,
+  asignarPuntos,
   procesarVencimientos,
   registrarEvento,
 } from "../puntos/libro.js";
 import { crearRegla } from "../puntos/reglas.js";
 import { R } from "../puntos/rutas.js";
 import type { Evento } from "../puntos/tipos.js";
-import { actualizarVigencia } from "../puntos/vigencias.js";
 import { crearPerfilesAlmacen } from "../usuarios/perfiles-almacen.js";
 import { conciliar } from "./conciliacion.js";
 import { aCsv, aXlsx, seleccionar } from "./exportaciones.js";
@@ -29,7 +28,6 @@ import {
   listarLibro,
   reporteActividad,
   reporteCanjes,
-  reporteTendencias,
   resumen,
 } from "./reportes.js";
 
@@ -79,16 +77,23 @@ function especificacion(nombre: string, crear: () => Almacen) {
         },
       );
     }
-    const evento = (quien: string, ev: Evento, marca: Marca, iso: string) =>
+    const evento = (
+      quien: string,
+      ev: Evento,
+      marca: Marca,
+      iso: string,
+      vence = "2027-06-30",
+    ) =>
       registrarEvento(
         a,
         {
-          origen: "panel",
+          origen: "api:crm",
           idExterno: `${run}-${n++}`,
           evento: ev,
           marca,
           correoCliente: correo(quien),
-          actor: ADMIN,
+          vence,
+          actor: "api:crm",
         },
         t(iso),
       );
@@ -145,20 +150,6 @@ function especificacion(nombre: string, crear: () => Almacen) {
           t0,
         );
       }
-      await actualizarVigencia(
-        a,
-        "zontes",
-        { activa: true, cantidad: 1, unidad: "meses" },
-        ADMIN,
-        t0,
-      );
-      await actualizarVigencia(
-        a,
-        "kiden",
-        { activa: false, cantidad: 12, unidad: "meses" },
-        ADMIN,
-        t0,
-      );
       await cargarCatalogo(
         a,
         [
@@ -176,30 +167,26 @@ function especificacion(nombre: string, crear: () => Almacen) {
       await cliente("caro", [], "2026-09-20T15:00:00.000Z");
       await cliente("dani", ["kiden"], "2026-09-25T15:00:00.000Z");
 
-      await evento("ana", "compra", "zontes", "2026-08-15T15:00:00.000Z"); // vence el 15-09
+      await evento(
+        "ana",
+        "compra",
+        "zontes",
+        "2026-08-15T15:00:00.000Z",
+        "2026-09-15",
+      ); // vence el 15-09
       await evento("ana", "compra", "zontes", "2026-09-10T15:00:00.000Z");
       await evento("ana", "referido", "zontes", "2026-09-11T15:00:00.000Z");
       await evento("beto", "compra", "kiden", "2026-09-12T15:00:00.000Z");
-      await ajustarPuntos(
+      // Asignación del panel con fecha propia (DEC-18): cuenta como otorgamiento.
+      await asignarPuntos(
         a,
         {
-          idExterno: `${run}-aj1`,
-          marca: "kiden",
-          correoCliente: correo("beto"),
-          puntos: -20,
-          motivo: "Corrección de prueba",
-          actor: ADMIN,
-        },
-        t("2026-09-13T15:00:00.000Z"),
-      );
-      await ajustarPuntos(
-        a,
-        {
-          idExterno: `${run}-aj2`,
+          idSolicitud: `${run}-as1`,
           marca: "zontes",
           correoCliente: correo("ana"),
           puntos: 30,
           motivo: "Bonificación de prueba",
+          vence: "2026-10-14",
           actor: ADMIN,
         },
         t("2026-09-14T15:00:00.000Z"),
@@ -245,8 +232,8 @@ function especificacion(nombre: string, crear: () => Almacen) {
     it("el libro global concilia con los movimientos y canjes de cada cliente", async () => {
       const r = await conciliar(a);
       expect(r).toMatchObject({
-        movimientos: 13,
-        asientos: 13,
+        movimientos: 12,
+        asientos: 12,
         faltantes: 0,
         distintos: 0,
         sobrantes: [],
@@ -260,13 +247,13 @@ function especificacion(nombre: string, crear: () => Almacen) {
       expect(r).toMatchObject({
         usuariosConActividad: 3,
         nuevosRegistros: 3,
-        puntosGenerados: 650,
+        puntosGenerados: 680,
         puntosUtilizados: 140,
         puntosVencidos: 100,
-        ajustes: { positivos: 30, negativos: 20 },
+        ajustes: { positivos: 0, negativos: 0 },
         canjes: 2,
         canjesAnulados: 1,
-        actividadesRegistradas: 5,
+        actividadesRegistradas: 6,
       });
       expect(r.porEvento).toEqual([
         { evento: "compra", movimientos: 4, puntos: 600, clientes: 3 },
@@ -276,46 +263,12 @@ function especificacion(nombre: string, crear: () => Almacen) {
       ]);
       const z = await reporteActividad(deps(), SEP, "zontes");
       expect(z).toMatchObject({
-        puntosGenerados: 250,
+        puntosGenerados: 280,
         puntosUtilizados: 50,
         puntosVencidos: 100,
         nuevosRegistros: 1,
         canjes: 1,
       });
-    });
-
-    it("tendencias con periodo anterior, día local de Bolivia y comparación por marca (A11)", async () => {
-      const r = await reporteTendencias(deps(), "otorgados", SEP);
-      expect(r.granularidad).toBe("dia");
-      expect(r.actual.total).toBe(650);
-      expect(r.anterior).toMatchObject({
-        desde: "2026-08-02",
-        hasta: "2026-08-31",
-        total: 100,
-      });
-      expect(r.variacion).toEqual({ absoluta: 550, porcentaje: 550 });
-      expect(r.actual.serie).toHaveLength(30);
-      expect(r.actual.serie.find((s) => s.desde === "2026-09-28")?.valor).toBe(
-        100,
-      );
-      expect(r.actual.serie.find((s) => s.desde === "2026-09-29")?.valor).toBe(
-        0,
-      );
-      expect(r.porMarca).toEqual([
-        { marca: "zontes", total: 250 },
-        { marca: "kiden", total: 400 },
-        { marca: "niu", total: 0 },
-      ]);
-      const reg = await reporteTendencias(deps(), "registros", SEP, "kiden");
-      expect(reg.actual.total).toBe(2);
-      expect(reg.porMarca.map((m) => m.total)).toEqual([1, 2, 0]);
-      const semanal = await reporteTendencias(
-        deps(),
-        "utilizados",
-        periodo("2026-08-01", "2026-09-30"),
-      );
-      expect(semanal.granularidad).toBe("semana");
-      expect(semanal.actual.total).toBe(140);
     });
 
     it("reporte de canjes con filtros, estado efectivo, ranking y paginación (A08)", async () => {
@@ -409,8 +362,8 @@ function especificacion(nombre: string, crear: () => Almacen) {
         { marca: "niu", clientes: 0 },
       ]);
       expect(r.puntosOtorgados).toEqual({
-        valor: 650,
-        variacion: { absoluta: 550, porcentaje: 550 },
+        valor: 680,
+        variacion: { absoluta: 580, porcentaje: 580 },
       });
       expect(r.puntosUtilizados).toMatchObject({ valor: 140, vencidos: 100 });
       expect(r.canjes).toMatchObject({ valor: 2, pendientesDeEntrega: 1 });
@@ -429,7 +382,7 @@ function especificacion(nombre: string, crear: () => Almacen) {
       });
       expect(r.actividadMensual[4]).toEqual({
         desde: "2026-09-01",
-        otorgados: 650,
+        otorgados: 680,
         utilizados: 140,
       });
       expect(r.canjesMensualesPorMarca[4]).toEqual({
@@ -468,7 +421,7 @@ function especificacion(nombre: string, crear: () => Almacen) {
         limite: 5,
         cursor: p2.siguiente!,
       });
-      expect([...p1.items, ...p2.items, ...p3.items]).toHaveLength(12);
+      expect([...p1.items, ...p2.items, ...p3.items]).toHaveLength(11);
       expect(p3.siguiente).toBeNull();
       const kiden = await listarLibro(deps(), SEP, {
         limite: 10,
@@ -490,7 +443,7 @@ function especificacion(nombre: string, crear: () => Almacen) {
         { periodo: SEP },
         AHORA,
       );
-      expect(mov.filas).toBe(12);
+      expect(mov.filas).toBe(11);
       const filas = await mov.construir();
       const csv = aCsv(mov.columnas, filas).toString("utf8");
       expect(
@@ -616,7 +569,6 @@ describe.runIf(integracion)("integración Firestore · reportes", () => {
       "correos",
       "auditoria",
       "reglas",
-      "vigencias",
       "eventos",
       "vencimientos",
       "beneficios",

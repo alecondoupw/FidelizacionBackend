@@ -15,7 +15,6 @@ import {
 import { crearRegla, eliminarRegla, listarReglas } from "../puntos/reglas.js";
 import { R } from "../puntos/rutas.js";
 import type { Lote } from "../puntos/tipos.js";
-import { actualizarVigencia } from "../puntos/vigencias.js";
 import {
   anularCanje,
   canjear,
@@ -81,6 +80,7 @@ function especificacion(nombre: string, crear: () => Almacen) {
       marca: Marca,
       veces: number,
       iso: string,
+      vence = "2027-12-31",
     ) {
       for (let i = 0; i < veces; i++) {
         await registrarEvento(
@@ -91,6 +91,7 @@ function especificacion(nombre: string, crear: () => Almacen) {
             evento: "compra",
             marca,
             correoCliente: correo(n),
+            vence,
             actor: ADMIN,
           },
           t(iso),
@@ -133,20 +134,6 @@ function especificacion(nombre: string, crear: () => Almacen) {
       await crearRegla(
         a,
         { marca: "kiden", evento: "compra", puntos: 100, activa: true },
-        ADMIN,
-        t("2026-01-01T00:00:00Z"),
-      );
-      await actualizarVigencia(
-        a,
-        "zontes",
-        { activa: false, cantidad: 12, unidad: "meses" },
-        ADMIN,
-        t("2026-01-01T00:00:00Z"),
-      );
-      await actualizarVigencia(
-        a,
-        "kiden",
-        { activa: false, cantidad: 12, unidad: "meses" },
         ADMIN,
         t("2026-01-01T00:00:00Z"),
       );
@@ -455,15 +442,14 @@ function especificacion(nombre: string, crear: () => Almacen) {
       });
 
       it("al anular, los puntos de un lote ya vencido no reviven", async () => {
-        await actualizarVigencia(
-          a,
-          "kiden",
-          { activa: true, cantidad: 10, unidad: "dias" },
-          ADMIN,
-          t("2026-04-01T00:00:00Z"),
-        );
         await sembrarCliente("dani", ["kiden"]);
-        await darPuntos("dani", "kiden", 1, "2026-04-01T15:00:00Z"); // vence 11 abr 23:59:59 BO
+        await darPuntos(
+          "dani",
+          "kiden",
+          1,
+          "2026-04-01T15:00:00Z",
+          "2026-04-11",
+        ); // vence 11 abr 23:59:59 BO
         const { canje } = await canjear(
           a,
           pedir("dani", ["kiden"], "kiden"),
@@ -493,13 +479,6 @@ function especificacion(nombre: string, crear: () => Almacen) {
           "canje-100",
           "otorgamiento100",
         ]);
-        await actualizarVigencia(
-          a,
-          "kiden",
-          { activa: false, cantidad: 12, unidad: "meses" },
-          ADMIN,
-          t("2026-05-02T00:00:00Z"),
-        );
       });
 
       it("Mis canjes sólo del propietario; otro cliente recibe 404", async () => {
@@ -557,7 +536,6 @@ describe.runIf(integracion)("integración Firestore · catálogo y canje", () =>
       "correos",
       "auditoria",
       "reglas",
-      "vigencias",
       "eventos",
       "vencimientos",
       "beneficios",

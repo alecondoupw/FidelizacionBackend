@@ -50,6 +50,14 @@ const ENDPOINTS = [
       query: { marca: "zontes", tipo: "otorgamiento", limite: "20" },
     },
   ],
+  [
+    "Puntos · cliente",
+    "Cómo ganar puntos (reglas activas de mis marcas)",
+    "GET",
+    "/reglas",
+    CLIENTE,
+    {},
+  ],
 
   [
     "Puntos · admin",
@@ -90,71 +98,22 @@ const ENDPOINTS = [
   ],
   [
     "Puntos · admin",
-    "Listar vencimientos por marca",
-    "GET",
-    "/admin/vigencias",
-    ADMIN,
-    {},
-  ],
-  [
-    "Puntos · admin",
-    "Configurar vencimiento de una marca",
-    "PUT",
-    "/admin/vigencias/:marca",
-    ADMIN,
-    {
-      params: { marca: "kiden" },
-      cuerpo: { activa: true, cantidad: 12, unidad: "meses" },
-    },
-  ],
-  [
-    "Puntos · admin",
-    "Historial de vencimiento",
-    "GET",
-    "/admin/vigencias/:marca/historial",
-    ADMIN,
-    { params: { marca: "kiden" } },
-  ],
-  [
-    "Puntos · admin",
-    "Registrar evento a mano",
+    "Sumar puntos con vencimiento propio",
     "POST",
-    "/admin/eventos",
+    "/admin/asignaciones",
     ADMIN,
     {
       cuerpo: {
-        idExterno: "factura-000123",
-        evento: "compra",
+        idSolicitud: "{{$guid}}",
         marca: "zontes",
         correoCliente: "cliente.zontes@ejemplo.test",
+        puntos: 100,
+        motivo: "Compra en tienda",
+        vence: "2027-10-04",
       },
       descripcion:
-        "Repetir el mismo idExterno devuelve 200 con repetido: true y no otorga dos veces.",
+        "Sólo suma (entero > 0). «vence» va de hoy a 2 años y los puntos vencen al final de ese día en hora de Bolivia (DEC-18). Repetir el mismo idSolicitud devuelve 200 con repetido: true.",
     },
-  ],
-  [
-    "Puntos · admin",
-    "Ajuste con motivo",
-    "POST",
-    "/admin/ajustes",
-    ADMIN,
-    {
-      cuerpo: {
-        idExterno: "ajuste-000045",
-        marca: "zontes",
-        correoCliente: "cliente.zontes@ejemplo.test",
-        puntos: -5,
-        motivo: "Corrección de una compra devuelta",
-      },
-    },
-  ],
-  [
-    "Puntos · admin",
-    "Procesar vencimientos ahora",
-    "POST",
-    "/admin/vencimientos/procesar",
-    ADMIN,
-    {},
   ],
 
   [
@@ -404,16 +363,6 @@ const ENDPOINTS = [
   ],
   [
     "Reportes · admin",
-    "Tendencias",
-    "GET",
-    "/admin/reportes/tendencias",
-    ADMIN,
-    {
-      query: { metrica: "otorgados", desde: hace30, hasta: hoy },
-    },
-  ],
-  [
-    "Reportes · admin",
     "Reporte de canjes",
     "GET",
     "/admin/reportes/canjes",
@@ -526,6 +475,61 @@ const ENDPOINTS = [
   ],
 
   [
+    "Importación de clientes",
+    "Vista previa de un archivo",
+    "POST",
+    "/admin/importaciones/vista-previa",
+    ADMIN,
+    {
+      query: { marca: "zontes" },
+      archivo: true,
+      descripcion:
+        "Cuerpo: el archivo CSV o XLSX (Body → binary), máximo 5 MB y 5.000 filas, con columnas nombre y correo. No escribe nada.",
+    },
+  ],
+  [
+    "Importación de clientes",
+    "Confirmar importación",
+    "POST",
+    "/admin/importaciones",
+    ADMIN,
+    {
+      query: {
+        marca: "zontes",
+        archivo: "clientes.csv",
+        idImportacion: "{{$guid}}",
+      },
+      archivo: true,
+      descripcion:
+        "Mismo archivo que la vista previa. Nunca crea cuentas ni administradores; vincula cuentas de cliente existentes con ese correo verificado. Repetir el idImportacion devuelve 200 con repetido: true.",
+    },
+  ],
+  [
+    "Importación de clientes",
+    "Importaciones de los últimos 90 días",
+    "GET",
+    "/admin/importaciones",
+    ADMIN,
+    {},
+  ],
+  [
+    "Importación de clientes",
+    "Descargar el reporte",
+    "GET",
+    "/admin/importaciones/:id/reporte",
+    ADMIN,
+    { params: { id: "{{importacionId}}" }, query: { formato: "csv" } },
+  ],
+  [
+    "Importación de clientes",
+    "Importados pendientes de registro",
+    "GET",
+    "/admin/importados",
+    ADMIN,
+    { query: { marca: "zontes", limite: "20" } },
+  ],
+
+  [
     "Integración (CRM / facturación)",
     "Registrar evento desde un sistema externo",
     "POST",
@@ -537,9 +541,10 @@ const ENDPOINTS = [
         evento: "compra",
         marca: "zontes",
         correoCliente: "cliente.zontes@ejemplo.test",
+        vence: "2027-10-04",
       },
       descripcion:
-        "Autentica con X-Api-Key. Mismas reglas e idempotencia que /admin/eventos; el origen queda como api:{sistema}.",
+        "Autentica con X-Api-Key. Aplica la regla activa de la marca y evento; «vence» es obligatorio (DEC-18). Repetir el idExterno devuelve 200 con repetido: true; el origen queda como api:{sistema}.",
     },
   ],
 ];
@@ -562,6 +567,7 @@ function peticion([, nombre, metodo, ruta, acceso, extra]) {
     header.push({ key: "X-Api-Key", value: "{{claveIntegracion}}" });
   if (extra.cuerpo)
     header.push({ key: "Content-Type", value: "application/json" });
+  if (extra.archivo) header.push({ key: "Content-Type", value: "text/csv" });
   const segmentos = ruta.split("/").filter(Boolean);
   const query = Object.entries(extra.query ?? {}).map(([key, value]) => ({
     key,
@@ -617,6 +623,7 @@ function peticion([, nombre, metodo, ruta, acceso, extra]) {
             },
           }
         : {}),
+      ...(extra.archivo ? { body: { mode: "file", file: { src: "" } } } : {}),
       description: [extra.descripcion, `Acceso: ${ACCESO[acceso]}`]
         .filter(Boolean)
         .join("\n\n"),
@@ -646,6 +653,7 @@ const coleccion = {
     { key: "uidCliente", value: "" },
     { key: "uidAdmin", value: "" },
     { key: "contenidoId", value: "" },
+    { key: "importacionId", value: "" },
   ],
   item: [
     {

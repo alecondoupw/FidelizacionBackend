@@ -2,7 +2,7 @@
 
 API **Express.js + TypeScript** de la plataforma de fidelización multimarca Zontes / Kiden / NIU. Express es la única capa que modifica datos sensibles: verifica identidad con Firebase Admin SDK, autoriza rol, estado, propietario y marca, y ejecuta las reglas de puntos, canjes, reportes y contenido. La documentación canónica (requisitos, decisiones, pruebas y manuales) vive en el Core de Obsidian del repositorio [FidelizacionDoc](https://github.com/alecondoupw/FidelizacionDoc) (`Zontes-Core/`).
 
-**Estado:** F1–F6 implementadas y verificadas; F7 (entrega y operación) en curso. Referencia de la API en [`docs/API.md`](docs/API.md) y colección Postman en [`docs/postman/`](docs/postman/).
+**Estado:** F1–F7 implementadas; F8 (correcciones de SRC-06: importación de clientes, puntos con vencimiento propio, menú e Inicio) implementada y verificada en local. Referencia de la API en [`docs/API.md`](docs/API.md) y colección Postman en [`docs/postman/`](docs/postman/).
 
 ## Requisitos
 

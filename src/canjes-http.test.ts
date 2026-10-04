@@ -113,14 +113,13 @@ const beto = como("u-beto");
 
 async function prepararCanje() {
   const b = await admin.post("/admin/beneficios").send(beneficio);
-  await admin
-    .post("/admin/reglas")
-    .send({ marca: "zontes", evento: "compra", puntos: 150, activa: true });
-  await admin.post("/admin/eventos").send({
-    idExterno: "evento-ana-0001",
-    evento: "compra",
+  await admin.post("/admin/asignaciones").send({
+    idSolicitud: "asignacion-ana-0001",
     marca: "zontes",
     correoCliente: "ana@ejemplo.test",
+    puntos: 150,
+    motivo: "Compra en tienda",
+    vence: "2027-10-03",
   });
   const c = await ana.post("/canjes").send({
     beneficioId: b.body.id,

@@ -20,6 +20,7 @@ import {
 } from "./identidad/cuentas.js";
 import type { PerfilRepository } from "./usuarios/perfiles.js";
 import { crearPerfilesAlmacen } from "./usuarios/perfiles-almacen.js";
+import { crearFuenteImportacion } from "./importacion/importacion.js";
 
 /** Puertos que usan las rutas; las pruebas inyectan dobles. */
 export interface Dependencias {
@@ -38,7 +39,8 @@ export interface Dependencias {
  * Sin él: el servidor arranca y toda ruta protegida responde 503.
  */
 export function crearDependencias(config: AppConfig): Dependencias {
-  const fuenteLegacy = crearFuenteSintetica();
+  const sintetica =
+    config.legacySource === "sintetica" ? crearFuenteSintetica() : undefined;
   const reloj = () => new Date();
   if (!config.firebaseProjectId) {
     const noConfigurado = (): never => {
@@ -63,7 +65,7 @@ export function crearDependencias(config: AppConfig): Dependencias {
         eliminar: async () => noConfigurado(),
         revocarSesiones: async () => noConfigurado(),
       },
-      fuenteLegacy,
+      fuenteLegacy: sintetica ?? { buscarPorCorreo: async () => null },
       almacen: {
         leer: async () => noConfigurado(),
         consultar: async () => noConfigurado(),
@@ -107,7 +109,8 @@ export function crearDependencias(config: AppConfig): Dependencias {
       eliminar: (u) => getCuentas().eliminar(u),
       revocarSesiones: (u) => getCuentas().revocarSesiones(u),
     },
-    fuenteLegacy,
+    // Clientes importados por marca (DEC-17), más el doble si se pidió.
+    fuenteLegacy: crearFuenteImportacion(almacenPerezoso, sintetica),
     almacen: almacenPerezoso,
     reloj,
   };

@@ -18,10 +18,8 @@ import {
   anterior,
   claveCubeta,
   cubetas,
-  granularidad,
   ultimosDias,
   ultimosMeses,
-  type Granularidad,
   type Periodo,
 } from "./periodo.js";
 
@@ -35,7 +33,7 @@ const suma = (xs: AsientoConId[]) => xs.reduce((t, a) => t + a.puntos, 0);
 const deTipo = (xs: AsientoConId[], tipo: AsientoConId["tipo"]) =>
   xs.filter((a) => a.tipo === tipo);
 
-/** Puntos otorgados por eventos (no incluye ajustes). */
+/** Puntos otorgados por eventos y asignaciones del panel (no incluye ajustes históricos). */
 export const otorgados = (xs: AsientoConId[]) =>
   suma(deTipo(xs, "otorgamiento"));
 /** Puntos usados en canjes, neto de anulaciones. */
@@ -87,109 +85,13 @@ export async function reporteActividad(
     puntosVencidos: vencidos(xs),
     ajustes: {
       positivos: suma(ajustes.filter((a) => a.puntos > 0)),
-      negativos: -suma(ajustes.filter((a) => a.puntos < 0)),
+      // Ajustes históricos (F2–F7): desde F8 no hay restas manuales (DEC-18).
+      negativos: Math.abs(suma(ajustes.filter((a) => a.puntos < 0))),
     },
     canjes: validos(cs).length,
     canjesAnulados: cs.length - validos(cs).length,
     actividadesRegistradas: deTipo(xs, "otorgamiento").length,
     porEvento,
-  };
-}
-
-// ── A11 Tendencias ────────────────────────────────────────────────────
-export const METRICAS = [
-  "otorgados",
-  "utilizados",
-  "canjes",
-  "registros",
-] as const;
-export type Metrica = (typeof METRICAS)[number];
-
-/** Un hecho medible; un registro cuenta en cada marca vinculada. */
-interface Hecho {
-  fecha: string;
-  marcas: Marca[];
-  valor: number;
-}
-
-async function hechos(
-  deps: DepsReportes,
-  metrica: Metrica,
-  p: Periodo,
-): Promise<Hecho[]> {
-  if (metrica === "canjes") {
-    return validos(await canjesEmitidos(deps.almacen, p)).map((c) => ({
-      fecha: c.emitidoEn,
-      marcas: [c.marca],
-      valor: 1,
-    }));
-  }
-  if (metrica === "registros") {
-    return (await registros(deps.almacen, p)).map((r) => ({
-      fecha: r.creadoEn,
-      marcas: r.marcas,
-      valor: 1,
-    }));
-  }
-  const tipo = metrica === "otorgados" ? "otorgamiento" : "canje";
-  const signo = metrica === "otorgados" ? 1 : -1;
-  return deTipo(await asientos(deps.almacen, p), tipo).map((a) => ({
-    fecha: a.fecha,
-    marcas: [a.marca],
-    valor: signo * a.puntos,
-  }));
-}
-
-const deMarca = (h: Hecho, marca: Marca) => h.marcas.includes(marca);
-
-function serie(hs: Hecho[], p: Periodo, g: Granularidad) {
-  const valores = new Map(cubetas(p, g).map((k) => [k, 0]));
-  for (const h of hs) {
-    const k = claveCubeta(h.fecha, g, p);
-    valores.set(k, (valores.get(k) ?? 0) + h.valor);
-  }
-  return [...valores].map(([desde, valor]) => ({ desde, valor }));
-}
-
-export async function reporteTendencias(
-  deps: DepsReportes,
-  metrica: Metrica,
-  p: Periodo,
-  marca?: Marca,
-) {
-  const previo = anterior(p);
-  const g = granularidad(p.dias);
-  const [actual, antes] = await Promise.all([
-    hechos(deps, metrica, p),
-    hechos(deps, metrica, previo),
-  ]);
-  const filtrar = (hs: Hecho[]) =>
-    marca ? hs.filter((h) => deMarca(h, marca)) : hs;
-  const total = (hs: Hecho[]) => hs.reduce((t, h) => t + h.valor, 0);
-  const a = filtrar(actual);
-  const b = filtrar(antes);
-  return {
-    metrica,
-    marca: marca ?? null,
-    granularidad: g,
-    actual: {
-      desde: p.desde,
-      hasta: p.hasta,
-      total: total(a),
-      serie: serie(a, p, g),
-    },
-    anterior: {
-      desde: previo.desde,
-      hasta: previo.hasta,
-      total: total(b),
-      serie: serie(b, previo, g),
-    },
-    variacion: variacion(total(a), total(b)),
-    // La comparación entre marcas usa siempre las tres (A11).
-    porMarca: MARCAS.map((m) => ({
-      marca: m,
-      total: total(actual.filter((h) => deMarca(h, m))),
-    })),
   };
 }
 

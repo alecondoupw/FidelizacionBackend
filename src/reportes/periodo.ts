@@ -89,10 +89,6 @@ export function anterior(p: Periodo): Periodo {
   return periodo(desde, hasta);
 }
 
-/** Diaria hasta 31 días, semanal hasta 6 meses, mensual más allá (DEC-09). */
-export const granularidad = (dias: number): Granularidad =>
-  dias <= 31 ? "dia" : dias <= 184 ? "semana" : "mes";
-
 function inicioCubeta(instante: Date, g: Granularidad): Date {
   if (g === "dia") return startOfDay(instante, EN);
   if (g === "semana") return startOfWeek(instante, { ...EN, weekStartsOn: 1 });

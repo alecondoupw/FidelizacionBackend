@@ -7,6 +7,9 @@ export type AccionAuditoria =
   | "regla.eliminada"
   | "vigencia.actualizada"
   | "puntos.ajuste"
+  // F8 (DEC-18)
+  | "puntos.asignados"
+  | "importacion.confirmada"
   | "beneficio.creado"
   | "beneficio.actualizado"
   | "canje.entregado"

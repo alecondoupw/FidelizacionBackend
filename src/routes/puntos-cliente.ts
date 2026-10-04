@@ -6,6 +6,7 @@ import { MARCAS } from "../dominio/tipos.js";
 import { AppError } from "../http/errors.js";
 import { validar } from "../http/validar.js";
 import { consultarSaldo, listarMovimientos } from "../puntos/libro.js";
+import { listarReglas } from "../puntos/reglas.js";
 
 /**
  * Saldo y movimientos del propietario (I-04, F2-BE-02). Sólo marcas vinculadas
@@ -54,6 +55,17 @@ export function puntosClienteRouter(deps: Dependencias): Router {
       { tipo: q.tipo, limite: q.limite, cursor: q.cursor },
     );
     res.set("Cache-Control", "no-store").json(r);
+  });
+
+  /**
+   * Formas de ganar puntos (SRC-06 p. 5 punto 9): sólo reglas activas de sus
+   * marcas; sin datos de auditoría.
+   */
+  router.get("/reglas", ...guardas, async (req, res) => {
+    const items = (await listarReglas(deps.almacen))
+      .filter((r) => r.activa && req.auth!.marcas.includes(r.marca))
+      .map(({ marca, evento, puntos }) => ({ marca, evento, puntos }));
+    res.set("Cache-Control", "no-store").json({ items });
   });
 
   return router;

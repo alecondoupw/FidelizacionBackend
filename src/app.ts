@@ -11,6 +11,7 @@ import { canjesRouter } from "./routes/canjes.js";
 import { contenidosRouter } from "./routes/contenidos.js";
 import { healthRouter } from "./routes/health.js";
 import { identidadesRouter } from "./routes/identidades.js";
+import { importacionesRouter } from "./routes/importaciones.js";
 import { integracionRouter } from "./routes/integracion.js";
 import { puntosAdminRouter } from "./routes/puntos-admin.js";
 import { puntosClienteRouter } from "./routes/puntos-cliente.js";
@@ -65,6 +66,7 @@ export function createApp(config: AppConfig, deps: Dependencias): Express {
   app.use(API_PREFIX, identidadesRouter(deps));
   app.use(API_PREFIX, reportesRouter(deps));
   app.use(API_PREFIX, contenidosRouter(deps));
+  app.use(API_PREFIX, importacionesRouter(deps));
   app.use(API_PREFIX, integracionRouter(deps, config.integracionClaves));
 
   app.use(notFoundHandler);

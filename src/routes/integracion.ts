@@ -6,10 +6,12 @@ import { MARCAS } from "../dominio/tipos.js";
 import { validar } from "../http/validar.js";
 import { registrarEvento } from "../puntos/libro.js";
 import { EVENTOS } from "../puntos/tipos.js";
+import { correoCliente, fechaVencimiento } from "./puntos-admin.js";
 
 /**
  * API de integración (DEC-05, REQ-21): facturación/CRM registran eventos con
- * su propio identificador; repetirlo nunca otorga dos veces.
+ * su propio identificador; repetirlo nunca otorga dos veces. Desde F8 cada
+ * evento indica la fecha de vencimiento de sus puntos (DEC-18).
  */
 export function integracionRouter(
   deps: Dependencias,
@@ -31,7 +33,8 @@ export function integracionRouter(
               .regex(/^[A-Za-z0-9._:-]+$/),
             evento: z.enum(EVENTOS),
             marca: z.enum(MARCAS),
-            correoCliente: z.email(),
+            correoCliente,
+            vence: fechaVencimiento,
           })
           .strict(),
         req.body,

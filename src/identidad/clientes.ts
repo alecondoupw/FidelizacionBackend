@@ -7,6 +7,7 @@ import { R } from "../puntos/rutas.js";
 import type { SaldoMarca } from "../puntos/tipos.js";
 import { huellaCorreo, normalizarCorreo } from "../usuarios/correo.js";
 import { aPerfil, datosDePerfil } from "../usuarios/perfiles-almacen.js";
+import { importacionDe } from "../importacion/importacion.js";
 import type { DepsIdentidad } from "./administradores.js";
 import type { ProveedorCuentas } from "./cuentas.js";
 
@@ -206,12 +207,14 @@ async function nombresDe(cuentas: ProveedorCuentas, actores: string[]) {
 
 export async function detalleCliente(deps: DepsIdentidad, uid: string) {
   const p = await leerCliente(deps.almacen, uid);
-  const [[vista], porMarca, historial] = await Promise.all([
+  const [[vista], porMarca, historial, importadas] = await Promise.all([
     vistas(deps, [p]),
     saldos(deps.almacen, p),
     historialDe(deps, uid),
+    importacionDe(deps.almacen, p.correo),
   ]);
-  return { ...vista!, saldos: porMarca, historial };
+  // Marcas en que su correo figura en una importación (SRC-06 p. 1 punto 11).
+  return { ...vista!, saldos: porMarca, historial, importadas };
 }
 
 /**

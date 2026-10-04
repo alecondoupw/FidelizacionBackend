@@ -39,7 +39,7 @@ export interface FiltrosExportacion {
   estado?: EstadoCanje;
 }
 
-type Celda = string | number | null;
+export type Celda = string | number | null;
 export interface Seleccion {
   columnas: string[];
   filas: number;

@@ -18,10 +18,8 @@ import {
 import { periodo } from "../reportes/periodo.js";
 import {
   listarLibro,
-  METRICAS,
   reporteActividad,
   reporteCanjes,
-  reporteTendencias,
   resumen,
 } from "../reportes/reportes.js";
 
@@ -59,23 +57,6 @@ export function reportesRouter(deps: Dependencias): Router {
     res
       .set(sinCache)
       .json(await reporteActividad(deps, periodo(q.desde, q.hasta), q.marca));
-  });
-
-  router.get("/admin/reportes/tendencias", ...admin, async (req, res) => {
-    const q = validar(
-      z.object({ ...rango, marca, metrica: z.enum(METRICAS) }),
-      req.query,
-    );
-    res
-      .set(sinCache)
-      .json(
-        await reporteTendencias(
-          deps,
-          q.metrica,
-          periodo(q.desde, q.hasta),
-          q.marca,
-        ),
-      );
   });
 
   router.get("/admin/reportes/canjes", ...admin, async (req, res) => {

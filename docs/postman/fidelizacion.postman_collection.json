@@ -44,6 +44,10 @@
     {
       "key": "contenidoId",
       "value": ""
+    },
+    {
+      "key": "importacionId",
+      "value": ""
     }
   ],
   "item": [
@@ -320,6 +324,29 @@
             },
             "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
           }
+        },
+        {
+          "name": "Cómo ganar puntos (reglas activas de mis marcas)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reglas",
+              "host": ["{{baseUrl}}"],
+              "path": ["reglas"]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
         }
       ]
     },
@@ -465,102 +492,7 @@
           }
         },
         {
-          "name": "Listar vencimientos por marca",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{idTokenAdmin}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/admin/vigencias",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "vigencias"]
-            },
-            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
-          }
-        },
-        {
-          "name": "Configurar vencimiento de una marca",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{idTokenAdmin}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/admin/vigencias/:marca",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "vigencias", ":marca"],
-              "variable": [
-                {
-                  "key": "marca",
-                  "value": "kiden"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"activa\": true,\n  \"cantidad\": 12,\n  \"unidad\": \"meses\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
-          }
-        },
-        {
-          "name": "Historial de vencimiento",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{idTokenAdmin}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/admin/vigencias/:marca/historial",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "vigencias", ":marca", "historial"],
-              "variable": [
-                {
-                  "key": "marca",
-                  "value": "kiden"
-                }
-              ]
-            },
-            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
-          }
-        },
-        {
-          "name": "Registrar evento a mano",
+          "name": "Sumar puntos con vencimiento propio",
           "request": {
             "method": "POST",
             "header": [
@@ -580,80 +512,20 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/admin/eventos",
+              "raw": "{{baseUrl}}/admin/asignaciones",
               "host": ["{{baseUrl}}"],
-              "path": ["admin", "eventos"]
+              "path": ["admin", "asignaciones"]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"idExterno\": \"factura-000123\",\n  \"evento\": \"compra\",\n  \"marca\": \"zontes\",\n  \"correoCliente\": \"cliente.zontes@ejemplo.test\"\n}",
+              "raw": "{\n  \"idSolicitud\": \"{{$guid}}\",\n  \"marca\": \"zontes\",\n  \"correoCliente\": \"cliente.zontes@ejemplo.test\",\n  \"puntos\": 100,\n  \"motivo\": \"Compra en tienda\",\n  \"vence\": \"2027-10-04\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "Repetir el mismo idExterno devuelve 200 con repetido: true y no otorga dos veces.\n\nAcceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
-          }
-        },
-        {
-          "name": "Ajuste con motivo",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{idTokenAdmin}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/admin/ajustes",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "ajustes"]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idExterno\": \"ajuste-000045\",\n  \"marca\": \"zontes\",\n  \"correoCliente\": \"cliente.zontes@ejemplo.test\",\n  \"puntos\": -5,\n  \"motivo\": \"Corrección de una compra devuelta\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
-          }
-        },
-        {
-          "name": "Procesar vencimientos ahora",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{idTokenAdmin}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/admin/vencimientos/procesar",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "vencimientos", "procesar"]
-            },
-            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+            "description": "Sólo suma (entero > 0). «vence» va de hoy a 2 años y los puntos vencen al final de ese día en hora de Bolivia (DEC-18). Repetir el mismo idSolicitud devuelve 200 con repetido: true.\n\nAcceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
           }
         }
       ]
@@ -1451,43 +1323,6 @@
           }
         },
         {
-          "name": "Tendencias",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{idTokenAdmin}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/admin/reportes/tendencias?metrica=otorgados&desde=2026-09-04&hasta=2026-10-03",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "reportes", "tendencias"],
-              "query": [
-                {
-                  "key": "metrica",
-                  "value": "otorgados"
-                },
-                {
-                  "key": "desde",
-                  "value": "2026-09-04"
-                },
-                {
-                  "key": "hasta",
-                  "value": "2026-10-03"
-                }
-              ]
-            },
-            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
-          }
-        },
-        {
           "name": "Reporte de canjes",
           "request": {
             "method": "GET",
@@ -1865,6 +1700,190 @@
       ]
     },
     {
+      "name": "Importación de clientes",
+      "item": [
+        {
+          "name": "Vista previa de un archivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/csv"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/importaciones/vista-previa?marca=zontes",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "importaciones", "vista-previa"],
+              "query": [
+                {
+                  "key": "marca",
+                  "value": "zontes"
+                }
+              ]
+            },
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            },
+            "description": "Cuerpo: el archivo CSV o XLSX (Body → binary), máximo 5 MB y 5.000 filas, con columnas nombre y correo. No escribe nada.\n\nAcceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Confirmar importación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/csv"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/importaciones?marca=zontes&archivo=clientes.csv&idImportacion={{$guid}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "importaciones"],
+              "query": [
+                {
+                  "key": "marca",
+                  "value": "zontes"
+                },
+                {
+                  "key": "archivo",
+                  "value": "clientes.csv"
+                },
+                {
+                  "key": "idImportacion",
+                  "value": "{{$guid}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            },
+            "description": "Mismo archivo que la vista previa. Nunca crea cuentas ni administradores; vincula cuentas de cliente existentes con ese correo verificado. Repetir el idImportacion devuelve 200 con repetido: true.\n\nAcceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Importaciones de los últimos 90 días",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/importaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "importaciones"]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Descargar el reporte",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/importaciones/:id/reporte?formato=csv",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "importaciones", ":id", "reporte"],
+              "query": [
+                {
+                  "key": "formato",
+                  "value": "csv"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{importacionId}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Importados pendientes de registro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/importados?marca=zontes&limite=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "importados"],
+              "query": [
+                {
+                  "key": "marca",
+                  "value": "zontes"
+                },
+                {
+                  "key": "limite",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        }
+      ]
+    },
+    {
       "name": "Integración (CRM / facturación)",
       "item": [
         {
@@ -1891,14 +1910,14 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"idExterno\": \"factura-000123\",\n  \"evento\": \"compra\",\n  \"marca\": \"zontes\",\n  \"correoCliente\": \"cliente.zontes@ejemplo.test\"\n}",
+              "raw": "{\n  \"idExterno\": \"factura-000123\",\n  \"evento\": \"compra\",\n  \"marca\": \"zontes\",\n  \"correoCliente\": \"cliente.zontes@ejemplo.test\",\n  \"vence\": \"2027-10-04\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "Autentica con X-Api-Key. Mismas reglas e idempotencia que /admin/eventos; el origen queda como api:{sistema}.\n\nAcceso: Cabecera X-Api-Key con una clave de integración (sin token de usuario)."
+            "description": "Autentica con X-Api-Key. Aplica la regla activa de la marca y evento; «vence» es obligatorio (DEC-18). Repetir el idExterno devuelve 200 con repetido: true; el origen queda como api:{sistema}.\n\nAcceso: Cabecera X-Api-Key con una clave de integración (sin token de usuario)."
           }
         }
       ]

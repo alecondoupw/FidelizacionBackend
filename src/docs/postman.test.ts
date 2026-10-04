@@ -33,7 +33,7 @@ interface Peticion {
       query?: { key: string; value: string }[];
       variable?: { key: string; value: string }[];
     };
-    body?: { raw: string };
+    body?: { mode: "raw"; raw: string } | { mode: "file" };
   };
 }
 interface Carpeta {
@@ -150,6 +150,7 @@ describe("F7-BE-02 · colección Postman", () => {
         uidCliente: uids.cliente!,
         uidAdmin: "admin-inexistente",
         contenidoId: "contenido-inexistente",
+        importacionId: "imp-inexistente",
         $guid: "solicitud-0001",
         idTokenCliente: uids.cliente!,
         idTokenAdmin: uids.admin!,
@@ -172,9 +173,13 @@ describe("F7-BE-02 · colección Postman", () => {
       for (const h of p.request.header) r = r.set(h.key, sustituir(h.value));
       const token = p.request.auth.bearer?.[0]?.value;
       if (token) r = r.set("Authorization", `Bearer ${sustituir(token)}`);
-      const res = p.request.body
-        ? await r.send(JSON.parse(sustituir(p.request.body.raw)))
-        : await r;
+      const cuerpo = p.request.body;
+      const res = !cuerpo
+        ? await r
+        : cuerpo.mode === "file"
+          ? // Las importaciones reciben el archivo como cuerpo (CSV de ejemplo).
+            await r.send(Buffer.from("nombre;correo\nAna;ana@ejemplo.test\n"))
+          : await r.send(JSON.parse(sustituir(cuerpo.raw)));
 
       const codigo = (res.body as { error?: { code?: string } })?.error?.code;
       expect({ estado: res.status, codigo }).not.toMatchObject({

@@ -4,7 +4,7 @@ import type { Marca, Perfil } from "../dominio/tipos.js";
 import { AppError } from "../http/errors.js";
 import { huellaCorreo, normalizarCorreo } from "../usuarios/correo.js";
 import { auditar } from "./auditoria.js";
-import { calcularVencimiento, idMovimiento, ZONA } from "./fechas.js";
+import { idMovimiento, vencimientoElegido, ZONA } from "./fechas.js";
 import { planificar, type Plan } from "./planificador.js";
 import { R } from "./rutas.js";
 import type {
@@ -14,7 +14,6 @@ import type {
   Regla,
   SaldoMarca,
   TipoMovimiento,
-  Vigencia,
 } from "./tipos.js";
 
 /**
@@ -38,7 +37,7 @@ export type ResultadoEvento =
     };
 
 export interface RegistroIdempotencia extends Record<string, unknown> {
-  tipo: "evento" | "ajuste" | "canje";
+  tipo: "evento" | "ajuste" | "asignacion" | "canje";
   /** Huella de lo solicitado: un reintento con datos distintos es un conflicto. */
   firma: string;
   registradoEn: string;
@@ -233,7 +232,7 @@ function otorgarLote(
   uid: string,
   marca: Marca,
   puntos: number,
-  vigencia: Vigencia | null,
+  venceEn: string,
   ahora: Date,
   movimientoId: string,
   datosMovimiento: Partial<Movimiento> & {
@@ -241,7 +240,6 @@ function otorgarLote(
     actor: string;
   },
 ) {
-  const venceEn = calcularVencimiento(ahora, vigencia);
   const loteId = almacen.nuevoId();
   const { tipo, actor, ...extra } = datosMovimiento;
   escribirMovimiento(
@@ -263,14 +261,12 @@ function otorgarLote(
     movimientoId,
   };
   tx.crear(`${R.lotes(uid, marca)}/${loteId}`, lote);
-  if (venceEn) {
-    tx.crear(R.vencimiento(uid, marca, loteId), {
-      uid,
-      marca,
-      loteId,
-      venceEn,
-    });
-  }
+  tx.crear(R.vencimiento(uid, marca, loteId), {
+    uid,
+    marca,
+    loteId,
+    venceEn,
+  });
   return { venceEn };
 }
 
@@ -287,8 +283,9 @@ export const fijarSaldo = (
   } satisfies SaldoMarca);
 
 /**
- * Registra un evento válido y aplica la regla activa (SRC-02 p. 5, punto 14).
- * Sin regla o con regla inactiva el evento queda registrado sin puntos.
+ * Registra un evento de un sistema integrado y aplica la regla activa (SRC-02
+ * p. 5, punto 14). Cada evento trae su fecha de vencimiento (DEC-18). Sin regla
+ * o con regla inactiva el evento queda registrado sin puntos.
  */
 export async function registrarEvento(
   almacen: Almacen,
@@ -298,12 +295,20 @@ export async function registrarEvento(
     evento: Evento;
     marca: Marca;
     correoCliente: string;
+    /** AAAA-MM-DD: vence al final de ese día en Bolivia. */
+    vence: string;
     actor: string;
   },
   ahora: Date,
 ): Promise<ResultadoEvento & { repetido: boolean }> {
   const clave = claveIdempotencia(e.origen, e.idExterno);
-  const firma = firmaDe([e.evento, e.marca, normalizarCorreo(e.correoCliente)]);
+  const firma = firmaDe([
+    e.evento,
+    e.marca,
+    normalizarCorreo(e.correoCliente),
+    e.vence,
+  ]);
+  const venceEn = vencimientoElegido(e.vence, ahora);
   const nuevoId = generadorIds(almacen, ahora);
 
   return almacen.transaccion(async (tx) => {
@@ -314,7 +319,6 @@ export async function registrarEvento(
       exigirActivo: true,
     });
     const regla = await tx.leer<Regla>(R.regla(e.marca, e.evento));
-    const vigencia = await tx.leer<Vigencia>(R.vigencia(e.marca));
     const lotes = await leerLotes(tx, uid, e.marca);
 
     let respuesta: ResultadoEvento;
@@ -328,13 +332,13 @@ export async function registrarEvento(
       const plan = planificar(lotes, ahora);
       aplicarPlan(tx, uid, e.marca, lotes, plan, ahora, nuevoId);
       const movimientoId = nuevoId();
-      const { venceEn } = otorgarLote(
+      otorgarLote(
         tx,
         almacen,
         uid,
         e.marca,
         regla.puntos,
-        vigencia,
+        venceEn,
         ahora,
         movimientoId,
         {
@@ -362,105 +366,99 @@ export async function registrarEvento(
   });
 }
 
-/** Corrección por ajuste (DEC-14): definitivo, con motivo, auditado; el saldo nunca queda negativo. */
-export async function ajustarPuntos(
+/**
+ * Asignación manual de puntos (DEC-18, SRC-06 p. 3): sólo suma, con motivo y
+ * fecha de vencimiento propia; definitiva, idempotente y auditada. Sustituye a
+ * los eventos y ajustes del panel (DEC-05/14), cuyo historial se conserva.
+ */
+export async function asignarPuntos(
   almacen: Almacen,
   a: {
-    idExterno: string;
+    idSolicitud: string;
     marca: Marca;
     correoCliente: string;
     puntos: number;
     motivo: string;
+    /** AAAA-MM-DD: vence al final de ese día en Bolivia. */
+    vence: string;
     actor: string;
   },
   ahora: Date,
 ): Promise<{
   movimientoId: string;
   puntos: number;
+  venceEn: string;
   disponible: number;
   repetido: boolean;
 }> {
-  const origen = "panel-ajuste";
-  const clave = claveIdempotencia(origen, a.idExterno);
+  if (!Number.isInteger(a.puntos) || a.puntos <= 0) {
+    throw new AppError(
+      422,
+      "VALIDATION_ERROR",
+      "Sólo se pueden sumar puntos: indica un entero mayor que cero.",
+    );
+  }
+  const origen = "panel-asignacion";
+  const clave = claveIdempotencia(origen, a.idSolicitud);
   const firma = firmaDe([
     a.marca,
     normalizarCorreo(a.correoCliente),
     a.puntos,
     a.motivo,
+    a.vence,
   ]);
+  const venceEn = vencimientoElegido(a.vence, ahora);
   const nuevoId = generadorIds(almacen, ahora);
 
   return almacen.transaccion(async (tx) => {
-    const previo = await leerIdempotencia(tx, clave, "ajuste", firma);
+    const previo = await leerIdempotencia(tx, clave, "asignacion", firma);
     if (previo) {
       return {
         ...(previo as {
           movimientoId: string;
           puntos: number;
+          venceEn: string;
           disponible: number;
         }),
         repetido: true,
       };
     }
     const uid = await resolverCliente(tx, a.correoCliente, a.marca, {
-      exigirActivo: false,
+      exigirActivo: true,
     });
-    const vigencia = await tx.leer<Vigencia>(R.vigencia(a.marca));
     const lotes = await leerLotes(tx, uid, a.marca);
-
-    const restar = a.puntos < 0 ? -a.puntos : 0;
-    const plan = planificar(lotes, ahora, restar);
-    if (plan.faltante > 0) {
-      throw new AppError(
-        409,
-        "INSUFFICIENT_BALANCE",
-        `El saldo disponible (${plan.disponibleFinal + restar - plan.faltante} puntos) no alcanza para el ajuste.`,
-      );
-    }
+    const plan = planificar(lotes, ahora);
     aplicarPlan(tx, uid, a.marca, lotes, plan, ahora, nuevoId);
 
     const movimientoId = nuevoId();
-    if (a.puntos > 0) {
-      otorgarLote(
-        tx,
-        almacen,
-        uid,
-        a.marca,
-        a.puntos,
-        vigencia,
-        ahora,
-        movimientoId,
-        {
-          tipo: "ajuste",
-          actor: a.actor,
-          origen,
-          motivo: a.motivo,
-        },
-      );
-    } else {
-      escribirMovimiento(
-        tx,
-        uid,
-        a.marca,
-        movimientoId,
-        movimiento("ajuste", a.puntos, ahora, a.actor, {
-          origen,
-          motivo: a.motivo,
-          lotes: plan.consumos,
-        }),
-      );
-    }
-    const disponible = plan.disponibleFinal + Math.max(a.puntos, 0);
+    // Otorgamiento sin evento: cuenta en «puntos otorgados» de los reportes.
+    otorgarLote(
+      tx,
+      almacen,
+      uid,
+      a.marca,
+      a.puntos,
+      venceEn,
+      ahora,
+      movimientoId,
+      {
+        tipo: "otorgamiento",
+        actor: a.actor,
+        origen,
+        motivo: a.motivo,
+      },
+    );
+    const disponible = plan.disponibleFinal + a.puntos;
     fijarSaldo(tx, uid, a.marca, disponible, ahora);
-    const respuesta = { movimientoId, puntos: a.puntos, disponible };
+    const respuesta = { movimientoId, puntos: a.puntos, venceEn, disponible };
     tx.crear(R.evento(clave), {
-      tipo: "ajuste",
+      tipo: "asignacion",
       firma,
       registradoEn: ahora.toISOString(),
       respuesta,
     } satisfies RegistroIdempotencia);
     auditar(tx, almacen.nuevoId(), {
-      accion: "puntos.ajuste",
+      accion: "puntos.asignados",
       actor: a.actor,
       objetivo: uid,
       en: ahora.toISOString(),
@@ -468,6 +466,7 @@ export async function ajustarPuntos(
         marca: a.marca,
         puntos: a.puntos,
         motivo: a.motivo,
+        venceEn,
         movimientoId,
       },
     });

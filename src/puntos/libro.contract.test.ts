@@ -8,7 +8,7 @@ import type { Marca } from "../dominio/tipos.js";
 import { getFirebaseAdminApp } from "../firebase/admin.js";
 import { huellaCorreo } from "../usuarios/correo.js";
 import {
-  ajustarPuntos,
+  asignarPuntos,
   consultarSaldo,
   listarMovimientos,
   procesarVencimientos,
@@ -21,17 +21,14 @@ import {
   listarReglas,
 } from "./reglas.js";
 import { R } from "./rutas.js";
-import type { Lote } from "./tipos.js";
-import {
-  actualizarVigencia,
-  historialVigencia,
-  listarVigencias,
-} from "./vigencias.js";
+import type { Lote, Movimiento } from "./tipos.js";
 
 /**
  * Especificación del motor de puntos (F2-BE-01/02/03) ejecutada sobre memoria
  * y, con FIRESTORE_INTEGRATION=1, sobre el proyecto de desarrollo (DEC-02).
- * Escenarios T-RULE, T-POINTS, T-HISTORY, T-EXP y T-BRAND de Testing.
+ * Escenarios T-RULE, T-POINTS, T-HISTORY, T-EXP y T-BRAND de Testing; desde F8
+ * (DEC-18) cada asignación o evento trae su propia fecha de vencimiento
+ * (T-GRANT-DATE).
  */
 function especificacion(nombre: string, crear: () => Almacen) {
   describe(`Motor de puntos · ${nombre}`, () => {
@@ -61,13 +58,30 @@ function especificacion(nombre: string, crear: () => Almacen) {
       idExterno: string,
       marca: Marca = "zontes",
       ev: "compra" | "referido" | "mantenimiento" | "asistencia" = "compra",
+      vence = "2027-12-31",
     ) => ({
-      origen: "panel",
+      origen: "api:crm",
       idExterno: `${run}-${idExterno}`,
       evento: ev,
       marca,
       correoCliente: correo(n),
+      vence,
+      actor: "api:crm",
+    });
+
+    const asignacion = (
+      n: string,
+      id: string,
+      extra: Partial<Parameters<typeof asignarPuntos>[1]> = {},
+    ) => ({
+      idSolicitud: `${run}-${id}`,
+      marca: "zontes" as Marca,
+      correoCliente: correo(n),
+      puntos: 50,
+      motivo: "Compra en tienda",
+      vence: "2026-12-31",
       actor: ADMIN,
+      ...extra,
     });
 
     async function sumaLotes(n: string, marca: Marca) {
@@ -97,20 +111,6 @@ function especificacion(nombre: string, crear: () => Almacen) {
       await crearRegla(
         a,
         { marca: "niu", evento: "mantenimiento", puntos: 50, activa: false },
-        ADMIN,
-        t("2026-01-01T00:00:00Z"),
-      );
-      await actualizarVigencia(
-        a,
-        "zontes",
-        { activa: true, cantidad: 1, unidad: "meses" },
-        ADMIN,
-        t("2026-01-01T00:00:00Z"),
-      );
-      await actualizarVigencia(
-        a,
-        "kiden",
-        { activa: false, cantidad: 12, unidad: "meses" },
         ADMIN,
         t("2026-01-01T00:00:00Z"),
       );
@@ -160,30 +160,16 @@ function especificacion(nombre: string, crear: () => Almacen) {
       });
     });
 
-    describe("F2-BE-03 · vigencias", () => {
-      it("las marcas sin configurar no vencen y el historial guarda antes/después", async () => {
-        const v = await listarVigencias(a);
-        expect(v.find((x) => x.marca === "niu")).toMatchObject({
-          activa: false,
-        });
-        const historial = await historialVigencia(a, "zontes");
-        expect(historial[0]).toMatchObject({
-          actor: ADMIN,
-          despues: { activa: true, cantidad: 1, unidad: "meses" },
-        });
-      });
-    });
-
     describe("F2-BE-02 · otorgamiento (T-POINTS, T-BRAND)", () => {
       beforeAll(async () => {
         await sembrarCliente("ana", ["zontes", "kiden"]);
         await sembrarCliente("inactiva", ["zontes"], false);
       });
 
-      it("evento válido con regla activa otorga los puntos con vencimiento de la marca", async () => {
+      it("evento válido con regla activa otorga los puntos con el vencimiento indicado", async () => {
         const r = await registrarEvento(
           a,
-          evento("ana", "c1"),
+          evento("ana", "c1", "zontes", "compra", "2026-02-28"),
           t("2026-01-31T14:00:00Z"),
         );
         expect(r).toMatchObject({
@@ -197,7 +183,7 @@ function especificacion(nombre: string, crear: () => Almacen) {
       it("el mismo origen + id externo nunca otorga dos veces", async () => {
         const r = await registrarEvento(
           a,
-          evento("ana", "c1"),
+          evento("ana", "c1", "zontes", "compra", "2026-02-28"),
           t("2026-02-01T14:00:00Z"),
         );
         expect(r).toMatchObject({
@@ -218,7 +204,10 @@ function especificacion(nombre: string, crear: () => Almacen) {
         await expect(
           registrarEvento(
             a,
-            { ...evento("ana", "c1"), evento: "referido" },
+            {
+              ...evento("ana", "c1", "zontes", "compra", "2026-02-28"),
+              evento: "referido",
+            },
             t("2026-02-01T14:00:00Z"),
           ),
         ).rejects.toMatchObject({ status: 409, code: "IDEMPOTENCY_CONFLICT" });
@@ -322,7 +311,7 @@ function especificacion(nombre: string, crear: () => Almacen) {
         await sembrarCliente("beto", ["zontes"]);
         await registrarEvento(
           a,
-          evento("beto", "b1"),
+          evento("beto", "b1", "zontes", "compra", "2026-02-10"),
           t("2026-01-10T15:00:00Z"),
         ); // vence 10 feb 23:59:59 BO
         let s = await consultarSaldo(
@@ -359,7 +348,7 @@ function especificacion(nombre: string, crear: () => Almacen) {
         await sembrarCliente("caro", ["zontes"]);
         await registrarEvento(
           a,
-          evento("caro", "caro1"),
+          evento("caro", "caro1", "zontes", "compra", "2026-04-01"),
           t("2026-03-01T15:00:00Z"),
         );
         const ahora = t("2026-05-01T00:00:00Z");
@@ -375,23 +364,16 @@ function especificacion(nombre: string, crear: () => Almacen) {
         expect(await sumaLotes("caro", "zontes")).toBe(0);
       });
 
-      it("cambiar la vigencia no altera vencimientos ya calculados", async () => {
+      it("cada asignación conserva su propia fecha (T-GRANT-DATE)", async () => {
         await sembrarCliente("dani", ["zontes"]);
         await registrarEvento(
           a,
-          evento("dani", "d1"),
+          evento("dani", "d1", "zontes", "compra", "2026-05-01"),
           t("2026-04-01T15:00:00Z"),
         );
-        await actualizarVigencia(
+        await asignarPuntos(
           a,
-          "zontes",
-          { activa: true, cantidad: 2, unidad: "anios" },
-          ADMIN,
-          t("2026-04-02T00:00:00Z"),
-        );
-        await registrarEvento(
-          a,
-          evento("dani", "d2"),
+          asignacion("dani", "d2", { vence: "2028-04-03" }),
           t("2026-04-03T15:00:00Z"),
         );
         const lotes = await a.consultar<Lote>({
@@ -401,110 +383,154 @@ function especificacion(nombre: string, crear: () => Almacen) {
           "2026-05-02T03:59:59.999Z",
           "2028-04-04T03:59:59.999Z",
         ]);
-        await actualizarVigencia(
-          a,
-          "zontes",
-          { activa: true, cantidad: 1, unidad: "meses" },
-          ADMIN,
-          t("2026-04-04T00:00:00Z"),
-        );
       });
     });
 
-    describe("DEC-14 · ajustes (T-HISTORY)", () => {
-      it("un ajuste negativo consume primero el lote que vence antes y queda auditado", async () => {
+    describe("DEC-18 · asignaciones del panel (T-GRANT-DATE, T-HISTORY)", () => {
+      beforeAll(async () => {
         await sembrarCliente("eva", ["zontes", "kiden"]);
-        await registrarEvento(
+        await sembrarCliente("eva-inactiva", ["zontes"], false);
+      });
+
+      it("suma con motivo y vence al final del día elegido en Bolivia; queda auditada", async () => {
+        const r = await asignarPuntos(
           a,
-          evento("eva", "e1", "kiden", "referido"),
-          t("2026-06-01T15:00:00Z"),
-        ); // kiden: sin vencimiento
-        await ajustarPuntos(
-          a,
-          {
-            idExterno: `${run}-aj1`,
-            marca: "kiden",
-            correoCliente: correo("eva"),
-            puntos: 50,
-            motivo: "Compensación por error",
-            actor: ADMIN,
-          },
+          asignacion("eva", "as1", { puntos: 80, vence: "2026-06-30" }),
           t("2026-06-02T15:00:00Z"),
         );
-        const r = await ajustarPuntos(
-          a,
-          {
-            idExterno: `${run}-aj2`,
-            marca: "kiden",
-            correoCliente: correo("eva"),
-            puntos: -120,
-            motivo: "Corrección de referido duplicado",
-            actor: ADMIN,
-          },
-          t("2026-06-03T15:00:00Z"),
-        );
-        expect(r).toMatchObject({
-          puntos: -120,
-          disponible: 230,
+        expect(r).toEqual({
+          movimientoId: expect.any(String),
+          puntos: 80,
+          venceEn: "2026-07-01T03:59:59.999Z",
+          disponible: 80,
           repetido: false,
         });
-        expect(await sumaLotes("eva", "kiden")).toBe(230);
+        const { items } = await listarMovimientos(a, uid("eva"), ["zontes"], {
+          limite: 5,
+        });
+        expect(items[0]).toMatchObject({
+          tipo: "otorgamiento",
+          puntos: 80,
+          evento: null,
+          motivo: "Compra en tienda",
+          venceEn: "2026-07-01T03:59:59.999Z",
+        });
         const auditoria = await a.consultar<{
           accion: string;
-          objetivo: string;
+          actor: string;
+          datos: Record<string, unknown>;
         }>({
           coleccion: "auditoria",
           donde: [
-            ["accion", "==", "puntos.ajuste"],
+            ["accion", "==", "puntos.asignados"],
             ["objetivo", "==", uid("eva")],
           ],
         });
-        expect(auditoria).toHaveLength(2);
+        expect(auditoria).toHaveLength(1);
+        // Historial (SRC-06 p. 3 punto 8): responsable, fecha, cliente,
+        // marca, cantidad, motivo y vencimiento.
+        expect(auditoria[0]!.datos).toMatchObject({
+          actor: ADMIN,
+          en: "2026-06-02T15:00:00.000Z",
+          objetivo: uid("eva"),
+          datos: {
+            marca: "zontes",
+            puntos: 80,
+            motivo: "Compra en tienda",
+            venceEn: "2026-07-01T03:59:59.999Z",
+          },
+        });
         expect(JSON.stringify(auditoria)).not.toContain("@");
       });
 
-      it("nunca deja el saldo negativo", async () => {
+      it("acepta vencer hoy y hasta 2 años; rechaza ayer y más de 2 años", async () => {
+        const ahora = t("2026-06-10T15:00:00Z"); // 10 jun 11:00 en Bolivia
         await expect(
-          ajustarPuntos(
+          asignarPuntos(
             a,
-            {
-              idExterno: `${run}-aj3`,
-              marca: "kiden",
-              correoCliente: correo("eva"),
-              puntos: -1000,
-              motivo: "Ajuste excesivo",
-              actor: ADMIN,
-            },
-            t("2026-06-04T15:00:00Z"),
+            asignacion("eva", "hoy", { vence: "2026-06-10" }),
+            ahora,
           ),
-        ).rejects.toMatchObject({ status: 409, code: "INSUFFICIENT_BALANCE" });
-        expect(
-          (
-            await consultarSaldo(
+        ).resolves.toMatchObject({ venceEn: "2026-06-11T03:59:59.999Z" });
+        await expect(
+          asignarPuntos(
+            a,
+            asignacion("eva", "max", { vence: "2028-06-10" }),
+            ahora,
+          ),
+        ).resolves.toMatchObject({ repetido: false });
+        for (const vence of ["2026-06-09", "2028-06-11", "2026-02-30", "x"]) {
+          await expect(
+            asignarPuntos(
               a,
-              uid("eva"),
-              ["kiden"],
-              t("2026-06-04T16:00:00Z"),
-            )
-          ).marcas[0]!.disponible,
-        ).toBe(230);
+              asignacion("eva", `mal-${vence}`, { vence }),
+              ahora,
+            ),
+          ).rejects.toMatchObject({ status: 422, code: "VALIDATION_ERROR" });
+        }
       });
 
-      it("el ajuste repetido con el mismo id no se aplica dos veces", async () => {
-        const r = await ajustarPuntos(
+      it("sólo suma: rechaza cero, negativos y decimales", async () => {
+        for (const puntos of [0, -10, 1.5]) {
+          await expect(
+            asignarPuntos(
+              a,
+              asignacion("eva", `p${puntos}`, { puntos }),
+              t("2026-06-10T15:00:00Z"),
+            ),
+          ).rejects.toMatchObject({ status: 422 });
+        }
+      });
+
+      it("la misma solicitud no registra dos veces; con otros datos → 409", async () => {
+        const datos = asignacion("eva", "doble", {
+          marca: "kiden",
+          puntos: 30,
+        });
+        const ahora = t("2026-06-11T15:00:00Z");
+        const primero = await asignarPuntos(a, datos, ahora);
+        const segundo = await asignarPuntos(a, datos, ahora);
+        expect(segundo).toEqual({ ...primero, repetido: true });
+        expect(await sumaLotes("eva", "kiden")).toBe(30);
+        await expect(
+          asignarPuntos(a, { ...datos, puntos: 31 }, ahora),
+        ).rejects.toMatchObject({ status: 409, code: "IDEMPOTENCY_CONFLICT" });
+      });
+
+      it("cliente desactivado o marca no vinculada → 422", async () => {
+        const ahora = t("2026-06-11T15:00:00Z");
+        await expect(
+          asignarPuntos(a, asignacion("eva-inactiva", "in1"), ahora),
+        ).rejects.toMatchObject({ code: "CLIENT_INACTIVE" });
+        await expect(
+          asignarPuntos(a, asignacion("eva", "niu1", { marca: "niu" }), ahora),
+        ).rejects.toMatchObject({ code: "BRAND_NOT_LINKED" });
+      });
+
+      it("al vencer, el remanente sale del saldo y queda en el historial sin doble descuento", async () => {
+        await sembrarCliente("gabi", ["zontes"]);
+        await asignarPuntos(
           a,
-          {
-            idExterno: `${run}-aj2`,
-            marca: "kiden",
-            correoCliente: correo("eva"),
-            puntos: -120,
-            motivo: "Corrección de referido duplicado",
-            actor: ADMIN,
-          },
-          t("2026-06-05T15:00:00Z"),
+          asignacion("gabi", "g1", { puntos: 40, vence: "2026-06-20" }),
+          t("2026-06-12T15:00:00Z"),
         );
-        expect(r.repetido).toBe(true);
-        expect(await sumaLotes("eva", "kiden")).toBe(230);
+        await asignarPuntos(
+          a,
+          asignacion("gabi", "g2", { puntos: 60, vence: "2026-12-31" }),
+          t("2026-06-12T15:00:00Z"),
+        );
+        const despues = t("2026-06-21T04:00:00Z");
+        await procesarVencimientos(a, despues);
+        const s = await consultarSaldo(a, uid("gabi"), ["zontes"], despues);
+        expect(s.marcas[0]).toMatchObject({
+          disponible: 60,
+          proximoVencimiento: { fecha: "2027-01-01T03:59:59.999Z", puntos: 60 },
+        });
+        const vencidos = await a.consultar<Movimiento>({
+          coleccion: R.movimientos(uid("gabi"), "zontes"),
+          donde: [["tipo", "==", "vencimiento"]],
+        });
+        expect(vencidos.map((m) => m.datos.puntos)).toEqual([-40]);
       });
     });
 
@@ -585,7 +611,6 @@ describe.runIf(integracion)("integración Firestore · motor de puntos", () => {
       "correos",
       "auditoria",
       "reglas",
-      "vigencias",
       "eventos",
       "vencimientos",
       "libro",

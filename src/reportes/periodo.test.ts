@@ -5,7 +5,6 @@ import {
   claveCubeta,
   cubetas,
   fechaLocal,
-  granularidad,
   periodo,
   ultimosDias,
 } from "./periodo.js";
@@ -59,12 +58,7 @@ describe("Periodos de reporte en hora de Bolivia (DEC-09)", () => {
     expect(ultimosDias(1, ahora).desde).toBe("2026-10-02");
   });
 
-  it("granularidad diaria, semanal y mensual con cubetas vacías incluidas", () => {
-    expect(granularidad(31)).toBe("dia");
-    expect(granularidad(32)).toBe("semana");
-    expect(granularidad(184)).toBe("semana");
-    expect(granularidad(185)).toBe("mes");
-
+  it("cubetas diarias, semanales y mensuales con las vacías incluidas", () => {
     const dias = periodo("2026-09-29", "2026-10-02");
     expect(cubetas(dias, "dia")).toEqual([
       "2026-09-29",

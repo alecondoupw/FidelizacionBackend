@@ -34,8 +34,11 @@ const envSchema = z.object({
     .trim()
     .optional()
     .transform((value) => value || undefined),
-  /** Fuente de clientes existentes (DEC-04). Sólo hay doble sintético en F1. */
-  LEGACY_SOURCE: z.enum(["sintetica"]).default("sintetica"),
+  /**
+   * Fuente del vínculo (DEC-04 → DEC-17): `importacion` usa los clientes
+   * importados; `sintetica` suma además el doble de desarrollo (`ejemplo.test`).
+   */
+  LEGACY_SOURCE: z.enum(["importacion", "sintetica"]).default("importacion"),
   /** Prefijo de colecciones Firestore; aísla pruebas de integración. */
   FIRESTORE_PREFIX: z
     .string()
@@ -74,7 +77,7 @@ export interface AppConfig {
   corsAllowedOrigins: string[];
   /** Ausente: el backend arranca, pero las rutas protegidas responden 503. */
   firebaseProjectId: string | undefined;
-  legacySource: "sintetica";
+  legacySource: "importacion" | "sintetica";
   firestorePrefix: string;
   /** hash SHA-256 hex → sistema. */
   integracionClaves: Map<string, string>;

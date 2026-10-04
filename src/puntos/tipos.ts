@@ -9,9 +9,6 @@ export const EVENTOS = [
 ] as const;
 export type Evento = (typeof EVENTOS)[number];
 
-export const UNIDADES = ["dias", "meses", "anios"] as const;
-export type Unidad = (typeof UNIDADES)[number];
-
 export interface Regla extends Record<string, unknown> {
   marca: Marca;
   evento: Evento;
@@ -21,15 +18,6 @@ export interface Regla extends Record<string, unknown> {
   creadoEn: string;
   actualizadoEn: string;
   actualizadoPor: string;
-}
-
-export interface Vigencia extends Record<string, unknown> {
-  marca: Marca;
-  activa: boolean;
-  cantidad: number;
-  unidad: Unidad;
-  actualizadoEn: string | null;
-  actualizadoPor: string | null;
 }
 
 export type TipoMovimiento =

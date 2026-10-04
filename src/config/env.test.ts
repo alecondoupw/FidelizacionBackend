@@ -11,7 +11,7 @@ describe("loadConfig", () => {
       port: 4000,
       corsAllowedOrigins: ["http://localhost:3000"],
       firebaseProjectId: undefined,
-      legacySource: "sintetica",
+      legacySource: "importacion",
       firestorePrefix: "",
       integracionClaves: new Map(),
     });

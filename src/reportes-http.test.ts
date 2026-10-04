@@ -92,7 +92,6 @@ describe("F5 · frontera de autorización y validación", () => {
     for (const ruta of [
       "/admin/reportes/resumen",
       `/admin/reportes/actividad?${SEP}`,
-      `/admin/reportes/tendencias?${SEP}&metrica=otorgados`,
       `/admin/reportes/canjes?${SEP}`,
       `/admin/movimientos?${SEP}`,
       `/admin/exportaciones/movimientos/vista-previa?${SEP}`,
@@ -117,7 +116,6 @@ describe("F5 · frontera de autorización y validación", () => {
         "/admin/reportes/actividad?desde=2025-01-01&hasta=2026-09-30",
         "RANGE_TOO_LARGE",
       ],
-      [`/admin/reportes/tendencias?${SEP}&metrica=ventas`, "VALIDATION_ERROR"],
       [`/admin/movimientos?${SEP}&tipo=regalo`, "VALIDATION_ERROR"],
       [`/admin/exportaciones/auditoria?${SEP}`, "VALIDATION_ERROR"],
       [

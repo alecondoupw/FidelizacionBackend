@@ -95,8 +95,7 @@ describe("F2 · rutas de administración", () => {
   it("un cliente no accede a ninguna ruta /admin", async () => {
     for (const [m, ruta] of [
       ["get", "/admin/reglas"],
-      ["post", "/admin/eventos"],
-      ["get", "/admin/vigencias"],
+      ["post", "/admin/asignaciones"],
     ] as const) {
       const res = await cliente(m === "get" ? "get" : "post", ruta).send({});
       expect(res.status).toBe(403);
@@ -150,100 +149,83 @@ describe("F2 · rutas de administración", () => {
     );
   });
 
-  it("vigencia: límite de 10 años e historial", async () => {
-    expect(
-      (
-        await admin("put", "/admin/vigencias/zontes").send({
-          activa: true,
-          cantidad: 11,
-          unidad: "anios",
-        })
-      ).status,
-    ).toBe(422);
-    expect(
-      (
-        await admin("put", "/admin/vigencias/otra").send({
-          activa: true,
-          cantidad: 1,
-          unidad: "anios",
-        })
-      ).status,
-    ).toBe(422);
-    expect(
-      (
-        await admin("put", "/admin/vigencias/zontes").send({
-          activa: true,
-          cantidad: 6,
-          unidad: "meses",
-        })
-      ).status,
-    ).toBe(200);
-    const h = await admin("get", "/admin/vigencias/zontes/historial");
-    expect(h.body.items[0]).toMatchObject({
-      actor: "u-admin",
-      despues: { cantidad: 6, unidad: "meses" },
-    });
+  it("las rutas retiradas en F8 ya no existen (DEC-18/19)", async () => {
+    for (const [m, ruta] of [
+      ["post", "/admin/eventos"],
+      ["post", "/admin/ajustes"],
+      ["get", "/admin/vigencias"],
+      ["put", "/admin/vigencias/zontes"],
+      ["get", "/admin/vigencias/zontes/historial"],
+      ["post", "/admin/vencimientos/procesar"],
+      ["get", "/admin/reportes/tendencias"],
+    ] as const) {
+      const res = await admin(m, ruta).send({});
+      expect([ruta, res.status]).toEqual([ruta, 404]);
+    }
   });
 
-  it("registro manual de eventos: 201 la primera vez, 200 al repetir", async () => {
-    await admin("post", "/admin/reglas").send(regla);
-    const cuerpo = {
-      idExterno: "panel-0001-abcd",
-      evento: "compra",
+  it("asignaciones: sólo suma, con motivo y vencimiento propio; 201 y 200 al repetir", async () => {
+    const base = {
+      idSolicitud: "panel-0001-abcd",
       marca: "zontes",
-      correoCliente: "ANA@ejemplo.test",
+      correoCliente: " ANA@ejemplo.test ",
+      puntos: 50,
+      motivo: "Compra en tienda",
+      vence: "2026-10-31",
     };
-    const r1 = await admin("post", "/admin/eventos").send(cuerpo);
+    for (const cambio of [
+      { puntos: 0 },
+      { puntos: -10 },
+      { puntos: 1.5 },
+      { motivo: "x" },
+      { vence: undefined },
+      { vence: "31/10/2026" },
+      { vence: "2026-10-02" }, // ayer en Bolivia
+      { vence: "2028-10-04" }, // más de 2 años
+      { evento: "compra" },
+    ]) {
+      const res = await admin("post", "/admin/asignaciones").send({
+        ...base,
+        ...cambio,
+      });
+      expect([cambio, res.status, res.body.error?.code]).toEqual([
+        cambio,
+        422,
+        "VALIDATION_ERROR",
+      ]);
+    }
+    const r1 = await admin("post", "/admin/asignaciones").send(base);
     expect(r1.status).toBe(201);
-    expect(r1.body).toMatchObject({
-      resultado: "otorgado",
-      puntos: 100,
+    expect(r1.body).toEqual({
+      movimientoId: expect.any(String),
+      puntos: 50,
+      venceEn: "2026-11-01T03:59:59.999Z",
+      disponible: 50,
       repetido: false,
     });
-    const r2 = await admin("post", "/admin/eventos").send(cuerpo);
+    const r2 = await admin("post", "/admin/asignaciones").send(base);
     expect(r2.status).toBe(200);
     expect(r2.body.repetido).toBe(true);
-    expect(
-      (
-        await admin("post", "/admin/eventos").send({
-          ...cuerpo,
-          idExterno: "x",
-        })
-      ).status,
-    ).toBe(422);
-  });
-
-  it("ajustes: motivo obligatorio, no cero y nunca saldo negativo", async () => {
-    const base = {
-      idExterno: "ajuste-0001-abcd",
-      marca: "zontes",
-      correoCliente: "ana@ejemplo.test",
-    };
-    expect(
-      (
-        await admin("post", "/admin/ajustes").send({
-          ...base,
-          puntos: 0,
-          motivo: "Motivo válido",
-        })
-      ).status,
-    ).toBe(422);
-    expect(
-      (
-        await admin("post", "/admin/ajustes").send({
-          ...base,
-          puntos: 10,
-          motivo: "x",
-        })
-      ).status,
-    ).toBe(422);
-    const r = await admin("post", "/admin/ajustes").send({
+    const hoy = await admin("post", "/admin/asignaciones").send({
       ...base,
-      puntos: -10,
-      motivo: "Corrección",
+      idSolicitud: "panel-0002-abcd",
+      vence: "2026-10-03",
     });
-    expect(r.status).toBe(409);
-    expect(r.body.error.code).toBe("INSUFFICIENT_BALANCE");
+    expect(hoy.status).toBe(201);
+    const saldo = await cliente("get", "/me/saldo");
+    expect(saldo.body.marcas[0]).toMatchObject({
+      disponible: 100,
+      proximoVencimiento: { fecha: "2026-10-04T03:59:59.999Z", puntos: 50 },
+    });
+    expect(
+      (
+        await admin("post", "/admin/asignaciones").send({
+          ...base,
+          idSolicitud: "panel-0003-abcd",
+          marca: "kiden",
+        })
+      ).body.error.code,
+    ).toBe("BRAND_NOT_LINKED");
   });
 });
 
@@ -253,6 +235,7 @@ describe("F2 · API de integración (DEC-05)", () => {
     evento: "compra",
     marca: "zontes",
     correoCliente: "ana@ejemplo.test",
+    vence: "2026-12-31",
   };
 
   it("sin claves configuradas responde 503", async () => {
@@ -307,6 +290,16 @@ describe("F2 · API de integración (DEC-05)", () => {
     const saldo = await cliente("get", "/me/saldo");
     expect(saldo.body.total).toBe(100);
   });
+
+  it("cada evento debe indicar su vencimiento (DEC-18)", async () => {
+    const sinFecha = { ...cuerpo, vence: undefined };
+    const res = await request(app)
+      .post(`${API_PREFIX}/integracion/eventos`)
+      .set("X-Api-Key", CLAVE)
+      .send(sinFecha);
+    expect(res.status).toBe(422);
+    expect(res.body.error.details[0].campo).toBe("vence");
+  });
 });
 
 describe("F2 · rutas del cliente (I-04)", () => {
@@ -330,6 +323,22 @@ describe("F2 · rutas del cliente (I-04)", () => {
       items: [],
       siguiente: null,
     });
+  });
+
+  it("reglas activas sólo de sus marcas, sin datos internos (SRC-06 p. 5)", async () => {
+    await admin("post", "/admin/reglas").send(regla);
+    await admin("post", "/admin/reglas").send({
+      ...regla,
+      evento: "referido",
+      activa: false,
+    });
+    await admin("post", "/admin/reglas").send({ ...regla, marca: "kiden" });
+    const r = await cliente("get", "/reglas");
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({
+      items: [{ marca: "zontes", evento: "compra", puntos: 100 }],
+    });
+    expect((await admin("get", "/reglas")).status).toBe(403);
   });
 
   it("un administrador no tiene saldo de cliente", async () => {
