@@ -1,6 +1,7 @@
 import type { RequestHandler } from "express";
-import type { Marca, Rol } from "../dominio/tipos.js";
+import type { Marca, Perfil, Rol } from "../dominio/tipos.js";
 import { AppError } from "../http/errors.js";
+import { medir } from "../http/observabilidad.js";
 import type { PerfilRepository } from "../usuarios/perfiles.js";
 import {
   TokenInvalidoError,
@@ -26,6 +27,8 @@ declare module "express-serve-static-core" {
   interface Request {
     token?: TokenVerificado;
     auth?: AuthContext;
+    /** Perfil leído por requireAuth; evita leerlo otra vez en la ruta. */
+    perfil?: Perfil;
   }
 }
 
@@ -53,9 +56,30 @@ async function verificarBearer(
   }
 }
 
+/**
+ * `sub` del JWT **sin verificar**: sólo sirve para adelantar la lectura del
+ * perfil mientras se verifica el token. Nunca autoriza nada por sí mismo.
+ */
+export function uidSinVerificar(token: string): string | null {
+  const carga = token.split(".")[1];
+  if (!carga) return null;
+  try {
+    const sub: unknown = JSON.parse(
+      Buffer.from(carga, "base64url").toString("utf8"),
+    ).sub;
+    return typeof sub === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(sub)
+      ? sub
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function requireToken(verifier: TokenVerifier): RequestHandler {
-  return async (req, _res, next) => {
-    req.token = await verificarBearer(req.get("Authorization"), verifier);
+  return async (req, res, next) => {
+    req.token = await medir(res, "token", () =>
+      verificarBearer(req.get("Authorization"), verifier),
+    );
     next();
   };
 }
@@ -64,9 +88,24 @@ export function requireAuth(
   verifier: TokenVerifier,
   perfiles: PerfilRepository,
 ): RequestHandler {
-  return async (req, _res, next) => {
-    req.token = await verificarBearer(req.get("Authorization"), verifier);
-    const perfil = await perfiles.obtener(req.token.uid);
+  return async (req, res, next) => {
+    const cabecera = req.get("Authorization");
+    // El perfil se lee en paralelo con la verificación (F7, rendimiento
+    // medido) y sólo se usa si el token verificado es del mismo uid.
+    const bearer = extractBearerToken(cabecera);
+    const uidAdelantado = bearer ? uidSinVerificar(bearer) : null;
+    const adelantado = uidAdelantado
+      ? medir(res, "perfil", () => perfiles.obtener(uidAdelantado))
+      : null;
+    adelantado?.catch(() => undefined);
+    const token = await medir(res, "token", () =>
+      verificarBearer(cabecera, verifier),
+    );
+    req.token = token;
+    const perfil =
+      adelantado && uidAdelantado === token.uid
+        ? await adelantado
+        : await medir(res, "perfil", () => perfiles.obtener(token.uid));
     if (!perfil) {
       throw new AppError(
         403,
@@ -85,6 +124,7 @@ export function requireAuth(
         "Verifica tu nuevo correo para continuar.",
       );
     }
+    req.perfil = perfil;
     req.auth = {
       uid: perfil.uid,
       rol: perfil.rol,

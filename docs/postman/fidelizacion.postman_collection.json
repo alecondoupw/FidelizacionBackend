@@ -1,0 +1,1907 @@
+{
+  "info": {
+    "name": "Fidelización Zontes / Kiden / NIU — API v1",
+    "description": "Colección de pruebas manuales de la API Express (F7-BE-02). Datos sintéticos (dominio ejemplo.test). Obtén los ID tokens con «Autenticación → Iniciar sesión» usando tus cuentas de prueba; nunca guardes contraseñas ni tokens en la colección exportada. Referencia completa: docs/API.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:4000/api/v1"
+    },
+    {
+      "key": "firebaseApiKey",
+      "value": ""
+    },
+    {
+      "key": "idTokenCliente",
+      "value": ""
+    },
+    {
+      "key": "idTokenAdmin",
+      "value": ""
+    },
+    {
+      "key": "claveIntegracion",
+      "value": ""
+    },
+    {
+      "key": "beneficioId",
+      "value": ""
+    },
+    {
+      "key": "codigoCanje",
+      "value": ""
+    },
+    {
+      "key": "uidCliente",
+      "value": ""
+    },
+    {
+      "key": "uidAdmin",
+      "value": ""
+    },
+    {
+      "key": "contenidoId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Autenticación (Firebase)",
+      "description": "Firebase Auth emite el ID token (válido 1 hora). Completa correo y contraseña de una cuenta de prueba al enviar; el script guarda el token en la variable indicada en el nombre. No exportes la colección con esos valores.",
+      "item": [
+        {
+          "name": "Iniciar sesión → idTokenCliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = pm.response.json();",
+                  "if (r.idToken) pm.collectionVariables.set(\"idTokenCliente\", r.idToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{firebaseApiKey}}",
+              "protocol": "https",
+              "host": ["identitytoolkit", "googleapis", "com"],
+              "path": ["v1", "accounts:signInWithPassword"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{firebaseApiKey}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"\",\n  \"password\": \"\",\n  \"returnSecureToken\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Iniciar sesión → idTokenAdmin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = pm.response.json();",
+                  "if (r.idToken) pm.collectionVariables.set(\"idTokenAdmin\", r.idToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{firebaseApiKey}}",
+              "protocol": "https",
+              "host": ["identitytoolkit", "googleapis", "com"],
+              "path": ["v1", "accounts:signInWithPassword"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{firebaseApiKey}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"\",\n  \"password\": \"\",\n  \"returnSecureToken\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Salud",
+      "item": [
+        {
+          "name": "Salud del servicio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Acceso: Público, sin token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Identidad",
+      "item": [
+        {
+          "name": "Mi sesión (rol, marcas, vínculo)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["me"]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        },
+        {
+          "name": "Registrar cliente tras crear la cuenta",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/clientes/registro",
+              "host": ["{{baseUrl}}"],
+              "path": ["clientes", "registro"]
+            },
+            "description": "Sin cuerpo: el correo sale del token y debe estar verificado.\n\nAcceso: ID token de Firebase (Bearer) con correo verificado; aún sin perfil."
+          }
+        },
+        {
+          "name": "Cambiar mi nombre",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["me"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Ana Prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Puntos · cliente",
+      "item": [
+        {
+          "name": "Mi saldo por marca",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me/saldo",
+              "host": ["{{baseUrl}}"],
+              "path": ["me", "saldo"]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        },
+        {
+          "name": "Mis movimientos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me/movimientos?marca=zontes&tipo=otorgamiento&limite=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["me", "movimientos"],
+              "query": [
+                {
+                  "key": "marca",
+                  "value": "zontes"
+                },
+                {
+                  "key": "tipo",
+                  "value": "otorgamiento"
+                },
+                {
+                  "key": "limite",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Puntos · admin",
+      "item": [
+        {
+          "name": "Listar reglas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reglas?marca=zontes",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reglas"],
+              "query": [
+                {
+                  "key": "marca",
+                  "value": "zontes"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Crear regla",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reglas",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reglas"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marca\": \"zontes\",\n  \"evento\": \"compra\",\n  \"puntos\": 10,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Editar regla",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reglas/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reglas", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "zontes__compra"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"puntos\": 12\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Eliminar regla",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reglas/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reglas", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "zontes__compra"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Listar vencimientos por marca",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/vigencias",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "vigencias"]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Configurar vencimiento de una marca",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/vigencias/:marca",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "vigencias", ":marca"],
+              "variable": [
+                {
+                  "key": "marca",
+                  "value": "kiden"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activa\": true,\n  \"cantidad\": 12,\n  \"unidad\": \"meses\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Historial de vencimiento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/vigencias/:marca/historial",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "vigencias", ":marca", "historial"],
+              "variable": [
+                {
+                  "key": "marca",
+                  "value": "kiden"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Registrar evento a mano",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/eventos",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "eventos"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idExterno\": \"factura-000123\",\n  \"evento\": \"compra\",\n  \"marca\": \"zontes\",\n  \"correoCliente\": \"cliente.zontes@ejemplo.test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Repetir el mismo idExterno devuelve 200 con repetido: true y no otorga dos veces.\n\nAcceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Ajuste con motivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/ajustes",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ajustes"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idExterno\": \"ajuste-000045\",\n  \"marca\": \"zontes\",\n  \"correoCliente\": \"cliente.zontes@ejemplo.test\",\n  \"puntos\": -5,\n  \"motivo\": \"Corrección de una compra devuelta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Procesar vencimientos ahora",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/vencimientos/procesar",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "vencimientos", "procesar"]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catálogo y canjes · cliente",
+      "item": [
+        {
+          "name": "Catálogo de mis marcas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/catalogo?marca=zontes&q=casco",
+              "host": ["{{baseUrl}}"],
+              "path": ["catalogo"],
+              "query": [
+                {
+                  "key": "marca",
+                  "value": "zontes"
+                },
+                {
+                  "key": "q",
+                  "value": "casco"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        },
+        {
+          "name": "Detalle de beneficio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/catalogo/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["catalogo", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{beneficioId}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        },
+        {
+          "name": "Canjear",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/canjes",
+              "host": ["{{baseUrl}}"],
+              "path": ["canjes"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"beneficioId\": \"{{beneficioId}}\",\n  \"varianteId\": \"unica\",\n  \"idSolicitud\": \"{{$guid}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "idSolicitud hace el canje idempotente: reintentarlo devuelve el mismo canje.\n\nAcceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        },
+        {
+          "name": "Mis canjes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me/canjes?limite=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["me", "canjes"],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        },
+        {
+          "name": "Un canje mío",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me/canjes/:codigo",
+              "host": ["{{baseUrl}}"],
+              "path": ["me", "canjes", ":codigo"],
+              "variable": [
+                {
+                  "key": "codigo",
+                  "value": "{{codigoCanje}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        },
+        {
+          "name": "Comprobante PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me/canjes/:codigo/comprobante",
+              "host": ["{{baseUrl}}"],
+              "path": ["me", "canjes", ":codigo", "comprobante"],
+              "variable": [
+                {
+                  "key": "codigo",
+                  "value": "{{codigoCanje}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        },
+        {
+          "name": "QR del canje (SVG)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me/canjes/:codigo/qr.svg",
+              "host": ["{{baseUrl}}"],
+              "path": ["me", "canjes", ":codigo", "qr.svg"],
+              "variable": [
+                {
+                  "key": "codigo",
+                  "value": "{{codigoCanje}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catálogo y canjes · admin",
+      "item": [
+        {
+          "name": "Listar beneficios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/beneficios",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "beneficios"]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Crear beneficio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/beneficios",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "beneficios"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marca\": \"zontes\",\n  \"nombre\": \"Casco abierto (ejemplo)\",\n  \"descripcion\": \"Beneficio de demostración.\",\n  \"categoria\": \"accesorios\",\n  \"puntos\": 120,\n  \"activo\": true,\n  \"disponibleDesde\": null,\n  \"vigenciaCuponDias\": 30,\n  \"caracteristicas\": [\n    \"Talla única\"\n  ],\n  \"variantes\": [\n    {\n      \"id\": \"unica\",\n      \"nombre\": \"Única\",\n      \"stock\": 10\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Reemplazar beneficio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/beneficios/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "beneficios", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{beneficioId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marca\": \"zontes\",\n  \"nombre\": \"Casco abierto (ejemplo)\",\n  \"descripcion\": \"\",\n  \"categoria\": \"accesorios\",\n  \"puntos\": 100,\n  \"activo\": true,\n  \"disponibleDesde\": null,\n  \"vigenciaCuponDias\": 30,\n  \"caracteristicas\": [],\n  \"variantes\": [\n    {\n      \"id\": \"unica\",\n      \"nombre\": \"Única\",\n      \"stock\": null\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Buscar canje por código",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/canjes/:codigo",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "canjes", ":codigo"],
+              "variable": [
+                {
+                  "key": "codigo",
+                  "value": "{{codigoCanje}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Marcar entregado",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/canjes/:codigo/entregar",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "canjes", ":codigo", "entregar"],
+              "variable": [
+                {
+                  "key": "codigo",
+                  "value": "{{codigoCanje}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Anular con motivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/canjes/:codigo/anular",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "canjes", ":codigo", "anular"],
+              "variable": [
+                {
+                  "key": "codigo",
+                  "value": "{{codigoCanje}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"El cliente desistió del canje\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Identidades · admin",
+      "item": [
+        {
+          "name": "Listar administradores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/administradores",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "administradores"]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Invitar administrador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/administradores",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "administradores"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Luis\",\n  \"apellido\": \"Prueba\",\n  \"correo\": \"admin.nuevo@ejemplo.test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Editar o desactivar administrador",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/administradores/:uid",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "administradores", ":uid"],
+              "variable": [
+                {
+                  "key": "uid",
+                  "value": "{{uidAdmin}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Eliminar administrador",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/administradores/:uid",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "administradores", ":uid"],
+              "variable": [
+                {
+                  "key": "uid",
+                  "value": "{{uidAdmin}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Listar clientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/clientes?marca=zontes&activo=true&limite=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "clientes"],
+              "query": [
+                {
+                  "key": "marca",
+                  "value": "zontes"
+                },
+                {
+                  "key": "activo",
+                  "value": "true"
+                },
+                {
+                  "key": "limite",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Detalle de cliente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/clientes/:uid",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "clientes", ":uid"],
+              "variable": [
+                {
+                  "key": "uid",
+                  "value": "{{uidCliente}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Editar cliente (nombre, correo, estado)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/clientes/:uid",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "clientes", ":uid"],
+              "variable": [
+                {
+                  "key": "uid",
+                  "value": "{{uidCliente}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Ana Prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Dar de baja cliente",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/clientes/:uid",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "clientes", ":uid"],
+              "variable": [
+                {
+                  "key": "uid",
+                  "value": "{{uidCliente}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Auditoría de una persona",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/auditoria?objetivo={{uidCliente}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "auditoria"],
+              "query": [
+                {
+                  "key": "objetivo",
+                  "value": "{{uidCliente}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reportes · admin",
+      "item": [
+        {
+          "name": "Resumen del dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reportes/resumen",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reportes", "resumen"]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Actividad",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reportes/actividad?desde=2026-09-04&hasta=2026-10-03",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reportes", "actividad"],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-04"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-03"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Tendencias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reportes/tendencias?metrica=otorgados&desde=2026-09-04&hasta=2026-10-03",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reportes", "tendencias"],
+              "query": [
+                {
+                  "key": "metrica",
+                  "value": "otorgados"
+                },
+                {
+                  "key": "desde",
+                  "value": "2026-09-04"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-03"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Reporte de canjes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/reportes/canjes?desde=2026-09-04&hasta=2026-10-03&limite=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reportes", "canjes"],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-04"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-03"
+                },
+                {
+                  "key": "limite",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Movimientos de todos los clientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/movimientos?desde=2026-09-04&hasta=2026-10-03&limite=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "movimientos"],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-04"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-03"
+                },
+                {
+                  "key": "limite",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Vista previa de exportación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/exportaciones/:tipo/vista-previa?desde=2026-09-04&hasta=2026-10-03",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "exportaciones", ":tipo", "vista-previa"],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-04"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-03"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "tipo",
+                  "value": "movimientos"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Exportar (CSV o Excel)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/exportaciones/:tipo?desde=2026-09-04&hasta=2026-10-03&formato=csv",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "exportaciones", ":tipo"],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-04"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-03"
+                },
+                {
+                  "key": "formato",
+                  "value": "csv"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "tipo",
+                  "value": "movimientos"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contenido",
+      "item": [
+        {
+          "name": "Novedades de mis marcas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contenidos?destacadas=true&limite=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["contenidos"],
+              "query": [
+                {
+                  "key": "destacadas",
+                  "value": "true"
+                },
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer). Rol cliente salvo GET/PATCH /me, que sirven a cualquier perfil activo."
+          }
+        },
+        {
+          "name": "Listar publicaciones (admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/contenidos?marca=kiden",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "contenidos"],
+              "query": [
+                {
+                  "key": "marca",
+                  "value": "kiden"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Crear publicación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/contenidos",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "contenidos"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marca\": \"kiden\",\n  \"categoria\": \"evento\",\n  \"titulo\": \"Rodada de fin de mes (ejemplo)\",\n  \"texto\": \"Salida grupal de demostración.\",\n  \"enlace\": null,\n  \"destacada\": true,\n  \"activa\": true,\n  \"publicarDesde\": \"2026-10-03\",\n  \"publicarHasta\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Reemplazar publicación",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/contenidos/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "contenidos", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{contenidoId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marca\": \"kiden\",\n  \"categoria\": \"evento\",\n  \"titulo\": \"Rodada de fin de mes (ejemplo)\",\n  \"texto\": \"\",\n  \"enlace\": \"https://ejemplo.test/rodada\",\n  \"destacada\": false,\n  \"activa\": true,\n  \"publicarDesde\": null,\n  \"publicarHasta\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Activar o desactivar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/contenidos/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "contenidos", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{contenidoId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activa\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        },
+        {
+          "name": "Eliminar publicación",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/contenidos/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "contenidos", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{contenidoId}}"
+                }
+              ]
+            },
+            "description": "Acceso: ID token de Firebase (Bearer) de un administrador activo; un cliente recibe 403."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integración (CRM / facturación)",
+      "item": [
+        {
+          "name": "Registrar evento desde un sistema externo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Api-Key",
+                "value": "{{claveIntegracion}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/integracion/eventos",
+              "host": ["{{baseUrl}}"],
+              "path": ["integracion", "eventos"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idExterno\": \"factura-000123\",\n  \"evento\": \"compra\",\n  \"marca\": \"zontes\",\n  \"correoCliente\": \"cliente.zontes@ejemplo.test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Autentica con X-Api-Key. Mismas reglas e idempotencia que /admin/eventos; el origen queda como api:{sistema}.\n\nAcceso: Cabecera X-Api-Key con una clave de integración (sin token de usuario)."
+          }
+        }
+      ]
+    }
+  ]
+}

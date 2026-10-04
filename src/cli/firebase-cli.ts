@@ -11,12 +11,11 @@ export function conectarFirebase() {
   const config = loadConfig();
   const app = getFirebaseAdminApp(config);
   const auth = getAuth(app);
-  const almacen = crearAlmacenFirestore(
-    getFirestore(app),
-    config.firestorePrefix,
-  );
+  const db = getFirestore(app);
+  const almacen = crearAlmacenFirestore(db, config.firestorePrefix);
   return {
     config,
+    db,
     auth,
     cuentas: crearCuentasAuth(auth),
     perfiles: crearPerfilesAlmacen(almacen),

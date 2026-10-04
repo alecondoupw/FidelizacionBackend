@@ -15,3 +15,6 @@ coverage/
 npm-debug.log*
 .DS_Store
 Thumbs.db
+
+# respaldos de Firestore (datos personales): nunca en Git
+respaldos/

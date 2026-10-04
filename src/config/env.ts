@@ -41,6 +41,10 @@ const envSchema = z.object({
     .string()
     .regex(/^[a-z0-9_]*$/, "Sólo minúsculas, dígitos y _.")
     .default(""),
+  /** Saltos de proxy de confianza para la IP real (Render: 1). 0 = ninguno. */
+  TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+  /** Peticiones por minuto y por IP a la API (F7-BE-01). */
+  LIMITE_POR_MINUTO: z.coerce.number().int().min(10).max(100_000).default(300),
   /** Claves de integración (DEC-05): «sistema:sha256hex» separadas por coma. */
   INTEGRACION_CLAVES: z
     .string()
@@ -74,6 +78,8 @@ export interface AppConfig {
   firestorePrefix: string;
   /** hash SHA-256 hex → sistema. */
   integracionClaves: Map<string, string>;
+  trustProxy: number;
+  limitePorMinuto: number;
 }
 
 export function loadConfig(
@@ -95,6 +101,8 @@ export function loadConfig(
     firebaseProjectId: value.FIREBASE_PROJECT_ID,
     legacySource: value.LEGACY_SOURCE,
     firestorePrefix: value.FIRESTORE_PREFIX,
+    trustProxy: value.TRUST_PROXY,
+    limitePorMinuto: value.LIMITE_POR_MINUTO,
     integracionClaves: new Map(
       value.INTEGRACION_CLAVES.map((entrada) => {
         const [sistema, hash] = entrada.split(":") as [string, string];

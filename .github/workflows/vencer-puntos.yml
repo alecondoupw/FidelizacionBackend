@@ -1,0 +1,43 @@
+# Vencimiento diario de puntos (F2-BE-03) programado según DEC-13.
+# No corre hasta que Paulo configure en GitHub → Settings → Secrets and variables → Actions:
+#   secretos  FIREBASE_SERVICE_ACCOUNT (JSON de la cuenta de servicio) y FIREBASE_PROJECT_ID
+#   variable  VENCIMIENTO_ACTIVO = true
+# El comando es reejecutable: nunca descuenta dos veces.
+name: Vencimiento de puntos
+
+on:
+  schedule:
+    - cron: "10 4 * * *" # 00:10 en Bolivia (UTC−4)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vencer-puntos
+  cancel-in-progress: false
+
+jobs:
+  vencer:
+    if: ${{ vars.VENCIMIENTO_ACTIVO == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Credenciales temporales
+        env:
+          CREDENCIALES: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: printf '%s' "$CREDENCIALES" > "$RUNNER_TEMP/firebase-admin.json"
+      - name: Vencer lotes
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-admin.json
+        run: npm run puntos:vencer
+      - name: Borrar credenciales
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-admin.json"

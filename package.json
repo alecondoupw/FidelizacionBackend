@@ -27,7 +27,10 @@
     "puntos:vencer": "tsx --env-file-if-exists=.env src/cli/vencer-puntos.ts",
     "reportes:conciliar": "tsx --env-file-if-exists=.env src/cli/conciliar-reportes.ts",
     "integracion:clave": "tsx src/cli/clave-integracion.ts",
-    "catalogo:cargar": "tsx --env-file-if-exists=.env src/cli/cargar-catalogo.ts"
+    "catalogo:cargar": "tsx --env-file-if-exists=.env src/cli/cargar-catalogo.ts",
+    "respaldo:exportar": "tsx --env-file-if-exists=.env src/cli/respaldo-exportar.ts",
+    "respaldo:restaurar": "tsx --env-file-if-exists=.env src/cli/respaldo-restaurar.ts",
+    "docs:postman": "node scripts/generar-postman.mjs && prettier --write docs/postman"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

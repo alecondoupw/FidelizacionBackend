@@ -1,0 +1,14 @@
+rules_version = '2';
+
+// Fidelización Zontes / Kiden / NIU — reglas de Firestore (F7-BE-01).
+// Ningún cliente accede a Firestore: el FE sólo usa Firebase Auth y todo dato
+// pasa por la API Express, que usa el Admin SDK (que omite estas reglas) y
+// autoriza cada operación. Por eso se deniega todo acceso directo.
+// Publicar en Firebase Console → Firestore Database → Reglas.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -17,8 +17,8 @@ export function meRouter(deps: Dependencias): Router {
   router.get(
     "/me",
     requireAuth(deps.tokenVerifier, deps.perfiles),
-    async (req, res) => {
-      const perfil = await deps.perfiles.obtener(req.auth!.uid);
+    (req, res) => {
+      const perfil = req.perfil;
       const body: MeResponse = {
         uid: req.auth!.uid,
         rol: req.auth!.rol,

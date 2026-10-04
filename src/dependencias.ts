@@ -1,7 +1,10 @@
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import type { TokenVerifier } from "./auth/token-verifier.js";
-import { crearVerificadorFirebase } from "./auth/token-verifier.js";
+import {
+  compartirEnCurso,
+  crearVerificadorFirebase,
+} from "./auth/token-verifier.js";
 import type { AppConfig } from "./config/env.js";
 import { getFirebaseAdminApp } from "./firebase/admin.js";
 import { AppError } from "./http/errors.js";
@@ -77,7 +80,7 @@ export function crearDependencias(config: AppConfig): Dependencias {
   let almacen: Almacen | undefined;
   const app = () => getFirebaseAdminApp(config);
   const getVerifier = () =>
-    (verifier ??= crearVerificadorFirebase(getAuth(app())));
+    (verifier ??= compartirEnCurso(crearVerificadorFirebase(getAuth(app()))));
   const getCuentas = () => (cuentas ??= crearCuentasFirebase(getAuth(app())));
   const getAlmacen = () =>
     (almacen ??= crearAlmacenFirestore(

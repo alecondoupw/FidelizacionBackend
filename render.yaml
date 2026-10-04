@@ -1,0 +1,34 @@
+# Blueprint de Render para la API Express (DEC-13: Render, plan gratuito).
+# Los valores marcados sync: false se cargan a mano en el panel de Render;
+# nunca se guardan en Git. Ver el manual de despliegue en el Core
+# (Zontes-Core/08-Produccion/Manual de despliegue y operacion.md).
+services:
+  - type: web
+    name: fidelizacion-backend
+    runtime: node
+    plan: free
+    region: ohio
+    branch: main
+    # Sin --include=dev, NODE_ENV=production omitiría TypeScript y el build fallaría.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      # Render antepone su balanceador: un salto de proxy para la IP real.
+      - key: TRUST_PROXY
+        value: "1"
+      # Archivo secreto «firebase-admin.json» subido en Render → Secret Files.
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/firebase-admin.json
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      # URL de Vercel del frontend, p. ej. https://fidelizacion.vercel.app
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: INTEGRACION_CLAVES
+        sync: false

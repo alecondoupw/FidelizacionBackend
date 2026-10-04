@@ -4,6 +4,8 @@ import { loadConfig } from "./env.js";
 describe("loadConfig", () => {
   it("aplica valores locales por defecto sin Firebase", () => {
     expect(loadConfig({})).toEqual({
+      trustProxy: 0,
+      limitePorMinuto: 300,
       nodeEnv: "development",
       host: "127.0.0.1",
       port: 4000,

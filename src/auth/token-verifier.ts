@@ -18,6 +18,25 @@ export interface TokenVerifier {
   verificar(idToken: string): Promise<TokenVerificado>;
 }
 
+/**
+ * Comparte la verificación en curso entre peticiones simultáneas con el mismo
+ * token (una página pide varias rutas a la vez). No guarda resultados: cuando
+ * termina, la siguiente petición vuelve a verificar, incluida la revocación.
+ */
+export function compartirEnCurso(verifier: TokenVerifier): TokenVerifier {
+  const enCurso = new Map<string, Promise<TokenVerificado>>();
+  return {
+    verificar(idToken) {
+      let p = enCurso.get(idToken);
+      if (!p) {
+        p = verifier.verificar(idToken).finally(() => enCurso.delete(idToken));
+        enCurso.set(idToken, p);
+      }
+      return p;
+    },
+  };
+}
+
 const CODIGOS_TOKEN_INVALIDO = new Set([
   "auth/id-token-expired",
   "auth/id-token-revoked",

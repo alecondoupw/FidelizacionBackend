@@ -4,6 +4,8 @@ import helmet from "helmet";
 import type { AppConfig } from "./config/env.js";
 import type { Dependencias } from "./dependencias.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
+import { limitarPeticiones } from "./http/limite.js";
+import { observabilidad } from "./http/observabilidad.js";
 import { requestId } from "./http/request-id.js";
 import { canjesRouter } from "./routes/canjes.js";
 import { contenidosRouter } from "./routes/contenidos.js";
@@ -23,7 +25,15 @@ export function createApp(config: AppConfig, deps: Dependencias): Express {
   const app = express();
 
   app.disable("x-powered-by");
+  if (config.trustProxy) app.set("trust proxy", config.trustProxy);
   app.use(requestId);
+  app.use(
+    observabilidad({
+      origenes: config.corsAllowedOrigins,
+      escribir:
+        config.nodeEnv === "test" ? null : (linea) => console.log(linea),
+    }),
+  );
   app.use(helmet());
   app.use(
     cors({
@@ -34,6 +44,15 @@ export function createApp(config: AppConfig, deps: Dependencias): Express {
       credentials: false,
       maxAge: 600,
     }),
+  );
+  // Después de CORS, para que el navegador pueda leer el 429.
+  app.use(
+    API_PREFIX,
+    limitarPeticiones({ ventanaMs: 60_000, maximo: config.limitePorMinuto }),
+  );
+  app.use(
+    `${API_PREFIX}/clientes/registro`,
+    limitarPeticiones({ ventanaMs: 15 * 60_000, maximo: 20 }),
   );
   app.use(express.json({ limit: "100kb" }));
 
