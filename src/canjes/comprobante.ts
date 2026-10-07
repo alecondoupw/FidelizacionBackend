@@ -40,7 +40,7 @@ export async function generarComprobante(
     margin: 40,
     info: {
       Title: `Comprobante de canje ${c.codigo}`,
-      Author: "MOTO LOYALTY",
+      Author: "Zontes",
       Subject: `${c.beneficioNombre} · ${NOMBRE_MARCA[c.marca]}`,
     },
   });
@@ -59,7 +59,7 @@ export async function generarComprobante(
     .fillColor(indigo)
     .font("Helvetica-Bold")
     .fontSize(11)
-    .text("MOTO LOYALTY · FIDELIZACIÓN");
+    .text("Zontes · FIDELIZACIÓN");
   doc
     .moveDown(0.3)
     .fillColor("#111827")

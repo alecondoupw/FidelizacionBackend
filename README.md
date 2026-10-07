@@ -65,3 +65,10 @@ Render (plan gratuito) con [`render.yaml`](render.yaml); variables secretas y el
 - Sin secretos en Git: `.env*`, `*.pem`, archivos de cuenta de servicio y `respaldos/` están ignorados.
 - El Admin SDK omite las reglas de Firestore: toda operación pasa antes por `src/auth`. El navegador no accede a Firestore (`firestore.rules` lo deniega todo).
 - Los errores 5xx no exponen detalles internos; se registran con su `requestId`. El registro de peticiones no incluye cuerpos, consultas, tokens ni correos.
+
+## Demo Zontes — 2026-10-07
+
+Comprobantes PDF con autor y encabezado Zontes. Las cuentas y datos de demo permanecen en Firebase y se utilizan conectando al mismo proyecto. Los contratos existentes sirven también a la PWA.
+
+- [Cambios y evidencia](https://github.com/alecondoupw/FidelizacionDoc/blob/main/Zontes-Core/05-Desarrollo/Cambios%20backend%20-%20comprobantes%20Zontes%20y%20demo.md).
+- [Configuración de Render y Vercel](https://github.com/alecondoupw/FidelizacionDoc/blob/main/Zontes-Core/08-Produccion/Guia%20rapida%20-%20Render%20Vercel%20y%20demo%202026-10-07.md).
